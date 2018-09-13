@@ -27,6 +27,7 @@ class Bluez extends EventEmitter {
         this.objectManager = await this.getInterface('org.bluez', '/', 'org.freedesktop.DBus.ObjectManager');
         this.agentManager = await this.getInterface('org.bluez', '/org/bluez', 'org.bluez.AgentManager1');
         this.profileManager = await this.getInterface('org.bluez', '/org/bluez', 'org.bluez.ProfileManager1');
+
         if(ignore_signal1 == false) {
             ignore_signal1 = true
             this.objectManager.on('InterfacesAdded', async(path) => {
@@ -88,66 +89,53 @@ class Bluez extends EventEmitter {
         return this.device[address]
     }
 
-    /*
-    This registers an agent handler.
-
-    The object path defines the path of the agent
-    that will be called when user input is needed.
-
-    Every application can register its own agent and
-    for all actions triggered by that application its
-    agent is used.
-
-    It is not required by an application to register
-    an agent. If an application does chooses to not
-    register an agent, the default agent is used. This
-    is on most cases a good idea. Only application
-    like a pairing wizard should register their own
-    agent.
-
-    An application can only register one agent. Multiple
-    agents per application is not supported.
-
-    The capability parameter can have the values
-    "DisplayOnly", "DisplayYesNo", "KeyboardOnly",
-    "NoInputNoOutput" and "KeyboardDisplay" which
-    reflects the input and output capabilities of the
-    agent.
-
-    If an empty string is used it will fallback to
-    "KeyboardDisplay".
-
-    Possible errors: org.bluez.Error.InvalidArguments
-                org.bluez.Error.AlreadyExists
-    */
-
     async mediaControl1(path, command) {
         this.mediaControl = await this.getInterface('org.bluez', path, 'org.bluez.MediaControl1').catch((err) => {
             return null
         });
 
         const self = this;
+        return new Promise((resolve, reject) => {
+            switch(command) {
+                case 'play':
+                    self.mediaControl.Play((err) => {
+                        if(err) return reject(err)
+                        resolve('resume playback')
+                    })
+                    break;
+                case 'pause':
+                    self.mediaControl.Pause((err) => {
+                        if(err) return reject(err)
+                        resolve('pause playback')
+                    })
+                    break;
+                case 'stop':
+                    self.mediaControl.Stop((err) => {
+                        if(err) return reject(err)
+                        resolve('stop playback')
+                    })
+                    break;
+                case 'next':
+                    self.mediaControl.Next((err) => {
+                        if(err) return reject(err)
+                        resolve('next playback')
+                    })
+                    break;
+                case 'previous':
+                    self.mediaControl.Previous((err) => {
+                        if(err) return reject(err)
+                        resolve('previous playback')
+                    })
+                    break;
+                case 'rewind':
+                    self.mediaControl.Rewind((err) => {
+                        if(err) return reject(err)
+                        resolve('rewind playback')
+                    })
+                    break;
+            }
+        })
 
-        switch(command) {
-            case 'play':
-                self.mediaControl.Play()
-                break;
-            case 'pause':
-                self.mediaControl.Pause()
-                break;
-            case 'stop':
-                self.mediaControl.Stop()
-                break;
-            case 'next':
-                self.mediaControl.Next()
-                break;
-            case 'previous':
-                self.mediaControl.Previous()
-                break;
-            case 'rewind':
-                self.mediaControl.Rewind()
-                break;
-        }
     }
 }
 
