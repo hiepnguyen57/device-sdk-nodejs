@@ -24,7 +24,7 @@ class Adapter {
         return new Promise((resolve, reject)=>{
             this._interface.StartDiscovery((err)=>{
                 if(err) return reject(err);
-                resolve();
+                resolve('Start Discovery');
             })
         });
     }
@@ -47,7 +47,7 @@ class Adapter {
         return new Promise((resolve, reject)=>{
             this._interface.StopDiscovery((err)=>{
                 if(err) return reject(err);
-                resolve();
+                resolve('Stop Discovery');
             })
         });
     }
@@ -66,7 +66,7 @@ class Adapter {
         return new Promise((resolve, reject)=>{
             this._interface.RemoveDevice(device, (err)=>{
                 if(err) return reject(err);
-                resolve();
+                resolve('Remove Device');
             })
         });
     }
@@ -217,7 +217,7 @@ class Adapter {
         return new Promise((resolve, reject)=>{
             this._interface.setProperty(name, value, (err)=>{
                 if(err) return reject(err);
-                resolve();
+                resolve((name + value));
             })
         });
     }

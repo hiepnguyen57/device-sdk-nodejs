@@ -38,7 +38,7 @@ class Device {
         return new Promise((resolve, reject)=>{
             this._interface.Connect((err)=>{
                 if(err) return reject(err);
-                resolve();
+                resolve('Connected successfully');
             })
         });
     }
@@ -64,7 +64,7 @@ class Device {
         return new Promise((resolve, reject)=>{
             this._interface.Disconnect((err)=>{
                 if(err) return reject(err);
-                resolve();
+                resolve('Disconnected successfully');
             })
         });
     }
