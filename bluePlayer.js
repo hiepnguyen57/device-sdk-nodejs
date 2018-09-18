@@ -1,4 +1,7 @@
-//const Bluez = require('./bluez/Bluez')
+const Bluez = require('./bluez/Bluez')
+const exec = require("child_process").exec;
+var device_info = require('./bluetooth_irq').device_info
+
 const Event = {
 	//B_PlaybackReady: 0,
 	StatusChanged: 		1,
@@ -12,7 +15,6 @@ const bluePlayerState = {
 	paused: 		3,
 	error: 			4,
 }
-
 const stateGroup = {
 	'idle': 	bluePlayerState.idle,
 	'playing':	bluePlayerState.playing,
@@ -20,13 +22,21 @@ const stateGroup = {
 	'stopped': 	bluePlayerState.paused,
 }
 
-//console.log(stateGroup.stopped);
+var bluealsa_aplay_exec
+
 class Playback {
 	constructor() {
-		// this.options = Object.assign({
-
-		// }, options);
+		this.bluetooth = new Bluez()
 		this.currState = bluePlayerState.idle
+	}
+
+	async init() {
+		await this.bluetooth.init()
+		await exec('python ./agent.py')
+
+		await this.adapter = this.bluetooth.getAdapter('hci0')
+		await this.adapter.Powered('on')
+		console.log('Bluetooth power on');
 	}
 
 	setSate(state) {
@@ -36,62 +46,58 @@ class Playback {
 	getState() {
 		return this.currState
 	}
-	// init() {
-	// 	async function bluez_handler() {
-	// 	    bluetooth.on('device connected', async(address, obj) => {
-	// 	        //update new address and obj path when new device connect to speaker
-	// 	        objDevicePath = obj
-	// 	        MacAddress = address
-	// 	        device = await bluetooth.getDevice(objDevicePath)
-	// 	        console.log('New device connected as address: ' + address);
-	// 	    })
-
-	//     	bluetooth.on('device disconnected', async() => {
-	//     	    console.log('device disconnected');
-
-	//     	    //remove old address and obj path
-	//     	    MacAddress = ''
-	//     	    objDevicePath = ''
-	//     	    device = null
-	//     	})
-
-	//     	bluetooth.on('update status', async(obj) => {
-	//     	    service.getInterface(obj, 'org.freedesktop.DBus.Properties', (err, iface) => {
-	//     	        if (err) {
-	//     	            console.error()
-	//     	        }
-	//     	        iface.on('PropertiesChanged', async (signal, status) => {
-	//     	            if (status[0][0] == 'Status') {
-	//     	                //console.log(status[0][1][1][0]);
-	//     	                if (status[0][1][1][0] == 'playing') {
-	//     	                    console.log('update status: playing');
-	//     	                }
-	//     	                else if (status[0][1][1][0] == 'paused') {
-	//     	                    console.log('update status: paused');
-	//     	                }
-	//     	            }
-	//     	        })
-	//     	    })
-	//     	})
-	// 	}
-	// }
 	Play() {
 		var state = this.getState()
-		if(state == bluePlayerState.paused) {
-//			setMediaControl(objDevicePath, 'bleplay')
-			this.setState(playing)
+		if(state in [bluePlayerState.paused, bluePlayerState.idle]) {
+			if(device_info.objPath != '')
+			{
+				this.bluetooth.setMediaControl(objPath, 'bleplay')
+				this.setState(playing)
+			}
+
 		}
 	}
 	Pause() {
 		var state = this.getState()
 		if(state == bluePlayerState.playing) {
-			this.setState(paused)
+			if(device_info.objPath != '') {
+				this.bluetooth.setMediaControl(objPath, 'blepause')
+				this.setState(paused)
+			}
+
 		}
 	}
 	Stop() {
 		var state = this.getState()
 		if(state = bluePlayerState.playing) {
-			this.setState(stopped)
+			if(device_info.objPath != '') {
+				this.bluetooth.setMediaControl(objPath, 'blestop')
+				this.setState(stopped)
+			}
+		}
+	}
+
+	bluealsa_aplay_connect() {
+		if(bluealsa_aplay_exec == undefined) {
+			if(device_info.address != '') {
+				bluealsa_aplay_exec = exec(`bluealsa_aplay ${device_info.address}`)
+				console.log('bluealsa_aplay ' + device_info.address);
+			}
+		}
+		else{
+			if(bluealsa_aplay_exec.killed == true) {
+				if(device_info.address != '') {
+					bluealsa_aplay_exec = exec(`bluealsa_aplay ${device_info.address}`)
+					console.log('bluealsa_aplay ' + device_info.address);
+				}
+			}
+		}
+	}
+
+	bluealsa_aplay_disconnect() {
+		if(bluealsa_aplay_exec != undefined) {
+			bluealsa_aplay_exec.kill('SIGINT')
+			console.log('bluealsa_aplay disconnected');
 		}
 	}
 }
@@ -99,12 +105,12 @@ class Playback {
 class BluePlayer {
 	constructor() {
 		this.playback_object = new Playback()
-		this.eventGroup = {
-			Event.StatusChanged: 	this.playback_object.setState,
-			Event.PlaybackResumed: 	this.playback_object.Play(),
-			Event.PlaybackStopped: 	this.playback_object.Stop(),
-			Event.PlaybackPaused: 	this.playback_object.Pause(),
-		}
+		// this.eventGroup = {
+		// 	Event.StatusChanged: 	this.playback_object.setState,
+		// 	Event.PlaybackResumed: 	this.playback_object.Play(),
+		// 	Event.PlaybackStopped: 	this.playback_object.Stop(),
+		// 	Event.PlaybackPaused: 	this.playback_object.Pause(),
+		// }
 	}
 }
 module.exports = BluePlayer

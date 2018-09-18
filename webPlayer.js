@@ -1,12 +1,12 @@
 const mpg123_app = require('./mpg123')
-const Event = {
-	W_PlaybackStarted: 		0,
-	PlaybackStopped: 		1,
-	W_PlaybackFailed: 		2,
-	PlaybackResume: 		3,
-	PlaybackPaused: 		4,
-	W_PlaybackFinished: 	5,
-}
+// const Event = {
+// 	W_PlaybackStarted: 		0,
+// 	PlaybackStopped: 		1,
+// 	W_PlaybackFailed: 		2,
+// 	PlaybackResume: 		3,
+// 	PlaybackPaused: 		4,
+// 	W_PlaybackFinished: 	5,
+// }
 
 const WebPlayerState = {
 	idle: 		 0,

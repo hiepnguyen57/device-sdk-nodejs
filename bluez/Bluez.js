@@ -74,64 +74,58 @@ class Bluez extends EventEmitter {
         return new Device(interface_)
     }
     
-    // setMediaControl(path, command) {
-    //     return new Promise((resolve) => {
-    //         this.DbusgetInterface('org.bluez', path, 'org.bluez.MediaControl1',(err, mediaControl) => {
-    //             if(err) {
-    //                 console.error(err)
-    //             }
-    //             switch(command) {
-    //                 case 'bleplay':
-    //                     mediaControl.Play((err) => {
-    //                         if(err) return resolve(err)
-    //                         resolve('resume playback')
-    //                     })
-    //                     break;
-    //                 case 'blepause':
-    //                     mediaControl.Pause((err) => {
-    //                         if(err) return resolve(err)
-    //                         resolve('pause playback')
-    //                     })
-    //                     break;
-    //                 case 'blestop':
-    //                     mediaControl.Stop((err) => {
-    //                         if(err) return resolve(err)
-    //                         resolve('stop playback')
-    //                     })
-    //                     break;
-    //                 case 'blenext':
-    //                     mediaControl.Next((err) => {
-    //                         if(err) return resolve(err)
-    //                         resolve('next playback')
-    //                     })
-    //                     break;
-    //                 case 'bleprevious':
-    //                     mediaControl.Previous((err) => {
-    //                         if(err) return resolve(err)
-    //                         resolve('previous playback')
-    //                     })
-    //                     break;
-    //                 case 'blerewind':
-    //                     mediaControl.Rewind((err) => {
-    //                         if(err) return resolve(err)
-    //                         resolve('rewind playback')
-    //                     })
-    //                     break;
-    //                 case 'blefastforward':
-    //                     mediaControl.FastForward((err) => {
-    //                         if(err) return resolve(err)
-    //                         resolve('fastforward playback')
-    //                     })
-    //                     break;
-    //             }
-    //         })
-    //     })
-    // }
-
-    aync getMediaControl(path) {
-        this.mediaControl = await this.getInterface(path, 'org.bluez.MediaControl1')
-
-        return this.mediaControl
+    setMediaControl(path, command) {
+        return new Promise((resolve) => {
+            this.DbusgetInterface('org.bluez', path, 'org.bluez.MediaControl1',(err, mediaControl) => {
+                if(err) {
+                    console.error(err)
+                }
+                switch(command) {
+                    case 'bleplay':
+                        mediaControl.Play((err) => {
+                            if(err) return resolve(err)
+                            resolve('resume playback')
+                        })
+                        break;
+                    case 'blepause':
+                        mediaControl.Pause((err) => {
+                            if(err) return resolve(err)
+                            resolve('pause playback')
+                        })
+                        break;
+                    case 'blestop':
+                        mediaControl.Stop((err) => {
+                            if(err) return resolve(err)
+                            resolve('stop playback')
+                        })
+                        break;
+                    case 'blenext':
+                        mediaControl.Next((err) => {
+                            if(err) return resolve(err)
+                            resolve('next playback')
+                        })
+                        break;
+                    case 'bleprevious':
+                        mediaControl.Previous((err) => {
+                            if(err) return resolve(err)
+                            resolve('previous playback')
+                        })
+                        break;
+                    case 'blerewind':
+                        mediaControl.Rewind((err) => {
+                            if(err) return resolve(err)
+                            resolve('rewind playback')
+                        })
+                        break;
+                    case 'blefastforward':
+                        mediaControl.FastForward((err) => {
+                            if(err) return resolve(err)
+                            resolve('fastforward playback')
+                        })
+                        break;
+                }
+            })
+        })
     }
 
     listAllDevice() {
