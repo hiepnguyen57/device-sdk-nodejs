@@ -1,43 +1,59 @@
-const Event = {
-    //B_PlaybackReady: 0,
-    StatusChanged:      1,
-    PlaybackPaused:     2,
-    PlaybackResumed:    3,
-    PlaybackStopped:    4
-}
-const bluePlayerState = {
-    idle:           1,
-    playing:        2,
-    paused:         3,
-    error:          4,
-}
-const stateGroup = {
-    'idle':     bluePlayerState.idle,
-    'playing':  bluePlayerState.playing,
-    'paused':   bluePlayerState.paused,
-    'stopped':  bluePlayerState.paused,
-}
-var play_object
-//console.log(stateGroup['playing'])
+const Bluez = require('./bluez/Bluez')
+const bluetooth = new Bluez()
+const dbus = require('dbus-native')
+const systemBus =  dbus.systemBus()
+var service = systemBus.getService('org.bluez')
+const exec = require("child_process").exec;
+var device_info = {}
 
-class Player {
-    constructor() {
-        this.currState = Event.StatusChanged
-    }
+device_info.address = ''
+device_info.objPath = ''
 
-    setState(state) {
-        this.currState = state
-    }
+function bluetooth_handler() {
+    bluetooth.on('device connected', async(address, obj) => {
+        console.log('New device connected as ' + address);
+        device_info.address = address
+        device_info.objPath = obj
+    })
 
-    getState() {
-        console.log('state now: ' + this.currState);
-        return this.currState
-    }
+    bluetooth.on('device disconnected', async() => {
+        device_info.address = ''
+        device_info.objPath = ''
+        console.log('device disconnected');
+    })
+
+    bluetooth.on('update status', async(obj) => {
+        console.log('device object path: ' + obj);
+        service.getInterface(obj, 'org.freedesktop.DBus.Properties', (err, notification) => {
+            if(err) {
+                console.error(err)
+            }
+
+            notification.on('PropertiesChanged', async (signal, status) => {
+                if (status[0][0] == 'Status') {
+
+                    //console.log(status[0][1][1][0]);
+                    if (status[0][1][1][0] == 'playing') {
+                        console.log('update status: playing');
+                    }
+                    else if (status[0][1][1][0] == 'paused') {
+                        console.log('update status: paused');
+                    }
+                }
+            })
+        })
+    })
 }
 
-function Playback() {
-    play_object = new Player()
-    return play_object
+async function bluetooth_init () {
+    await bluetooth.init()
+    exec('python ./agent.py')
+    console.log('Agent registered');
+    await bluetooth_handler()
+    const adapter = await bluetooth.getAdapter('hci0');
+    await adapter.Powered('on');
+    await adapter.Discoverable('on')
 }
-module.exports.Event = Event
-module.exports.Playback = Playback
+module.exports.bluetooth = bluetooth
+module.exports.bluetooth_init = bluetooth_init
+module.exports.device_info = device_info

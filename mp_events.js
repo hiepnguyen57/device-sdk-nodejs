@@ -1,6 +1,6 @@
 const amixer = require('./amixer')
 
-const PlayerState = {
+const playerState = {
 	webActive: 			0,
 	bluetoothActive: 	1,
 }
@@ -8,30 +8,35 @@ const PlayerState = {
 function ResumeHandler(object) {
 	console.log('resume handler');
 	console.log(object.activeState);
-	if(object.activeState == PlayerState.webActive) {
+	if(object.activeState == playerState.webActive) {
 		console.log('Web resume');
+		object.webPlayer.Play()
 	}
 	else {
 		console.log('bluetooth resume');
+		object.bluePlayer.Play()
 	}
 }
 
 function PauseHandler(object) {
 	console.log('Pause Handler');
 	console.log(object.activeState);
-	if(object.activeState == PlayerState.webActive) {
+	if(object.activeState == playerState.webActive) {
 		console.log('Web Pause');
+		object.webPlayer.Pause()
 	}
 	else {
 		console.log('bluetooth Pause');
+		object.bluePlayer.Pause()
 	}
 }
 
 function StopHandler(object) {
 	console.log('Stop Handler');
 	console.log(object.activeState);
-	if(object.activeState == PlayerState.webActive) {
+	if(object.activeState == playerState.webActive) {
 		console.log('Web Stop');
+		object.webPlayer.Stop()
 	}
 	else {
 		console.log('bluetooth Stop');
@@ -41,7 +46,7 @@ function StopHandler(object) {
 function NextHandler(object) {
 	console.log('Next Handler');
 	console.log(object.activeState);
-	if(object.activeState == PlayerState.webActive) {
+	if(object.activeState == playerState.webActive) {
 		console.log('Web Next');
 	}
 	else {
@@ -52,7 +57,7 @@ function NextHandler(object) {
 function PrevHandler(object) {
 	console.log('Prev Handler');
 	console.log(object.activeState);
-	if(object.activeState == PlayerState.webActive) {
+	if(object.activeState == playerState.webActive) {
 		console.log('Web prev');
 	}
 	else {
@@ -62,9 +67,9 @@ function PrevHandler(object) {
 
 function W_NewSongHandler(object) {
 	console.log('Web play new song');
-	console.log(object.activeState);
-	object.playback_object.streamURL = object.url
-	object.playback_object.Start()
+	console.log('objstate: ' + object.activeState);
+	object.webPlayer.streamURL = object.url
+	object.webPlayer.Start()
 }
 
 function B_PlayHandler(object) {
@@ -77,7 +82,7 @@ function B_FinishedHandler(object) {
 	console.log(object.activeState)
 }
 
-module.exports.PlayerState = PlayerState
+module.exports.playerState = playerState
 module.exports.ResumeHandler = ResumeHandler
 module.exports.PauseHandler = PauseHandler
 module.exports.StopHandler = StopHandler

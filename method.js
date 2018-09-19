@@ -1,20 +1,41 @@
-const Event = require('./test').Event
-const Player = require('./test').Playback()
 
-console.log(Player.getState());
-
-Player.setState(Event.PlaybackResumed)
-
-console.log(Player.getState())
-
-
-//console.log(test.getState())
-
-function intervalFunc() {
-	Player.setState(Event.PlaybackStopped)
-	console.log('Cant stop me now!');
+const Event = {
+	//B_PlaybackReady: 0,
+	StatusChanged: 		1,
+	PlaybackPaused: 	2,
+	PlaybackResumed: 	3,
+	PlaybackStopped: 	4
+}
+const bluePlayerState = {
+	idle: 			1,
+	playing: 		2,
+	paused: 		3,
+	error: 			4,
+}
+const stateGroup = {
+	'idle': 	bluePlayerState.idle,
+	'playing':	bluePlayerState.playing,
+	'paused': 	bluePlayerState.paused,
+	'stopped': 	bluePlayerState.paused,
 }
 
-setTimeout(intervalFunc, 4000);
+class Player {
+	constructor() {
+		this.currState = bluePlayerState.idle
+	}
+	setSate(state) {
+		this.currState = stateGroup[state]
+	}
 
-module.exports.Player = Player
+	getState() {
+		return this.currState
+	}
+}
+
+const play = new Player()
+
+console.log(play.getState());
+
+play.setSate('playing')
+
+console.log(play.getState());

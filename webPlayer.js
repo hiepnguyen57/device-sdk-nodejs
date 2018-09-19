@@ -8,7 +8,7 @@ const mpg123_app = require('./mpg123')
 // 	W_PlaybackFinished: 	5,
 // }
 
-const WebPlayerState = {
+const webPlayerState = {
 	idle: 		 0,
 	playing: 	 1,
 	stopped: 	 2,
@@ -16,23 +16,23 @@ const WebPlayerState = {
 	finished: 	 4,
 }
 
-class Playback {
+class WebPlayer {
 	constructor() {
 		this.mpg123 = new mpg123_app()
 		this.streamURL = null
-		this.currState = WebPlayerState.idle
+		this.currState = webPlayerState.idle
 	}
 
 	Start() {
-		if(this.getState() in [WebPlayerState.idle,
-					WebPlayerState.paused,
-					WebPlayerState.playing,
-					WebPlayerState.stopped,
-					WebPlayerState.finished]) {
+		if(this.getState() in [webPlayerState.idle,
+					webPlayerState.paused,
+					webPlayerState.playing,
+					webPlayerState.stopped,
+					webPlayerState.finished]) {
 			if(this.streamURL != null) {
 				this.mpg123.set_source(this.streamURL)
 				this.streamURL = null
-				this.setState(WebPlayerState.playing)
+				this.setState(webPlayerState.playing)
 				console.log('start playback');
 			}
 			else
@@ -40,27 +40,27 @@ class Playback {
 		}
 	}
 	Play() {
-		if(this.getState() == WebPlayerState.paused) {
+		if(this.getState() == webPlayerState.paused) {
 			this.mpg123.play()
-			this.setState(WebPlayerState.playing)
+			this.setState(webPlayerState.playing)
 		}
 	}
 	Pause() {
-		if(this.getState() == WebPlayerState.playing) {
-			this.mpg123.stop()
-			this.setState(WebPlayerState.paused)
+		if(this.getState() == webPlayerState.playing) {
+			this.mpg123.pause()
+			this.setState(webPlayerState.paused)
 		}
 	}
 	Stop() {
-		if(this.getState() in [WebPlayerState.playing,
-						WebPlayerState.paused]) {
+		if(this.getState() in [webPlayerState.playing,
+						webPlayerState.paused]) {
 			this.mpg123.stop()
-			this.setState(WebPlayerState.stopped)
+			this.setState(webPlayerState.stopped)
 		}
 	}
 	Error() {
-		if(this.getState() == WebPlayerState.playing) {
-			this.setState(WebPlayerState.stopped)
+		if(this.getState() == webPlayerState.playing) {
+			this.setState(webPlayerState.stopped)
 		}
 	}
 	getState() {
@@ -70,9 +70,9 @@ class Playback {
 		this.currState = state
 	}
 }
-class WebPlayer {
-	constructor() {
-		this.playback_object = new Playback()
-	}
-}
+// class WebPlayer {
+// 	constructor() {
+// 		this.playback_object = new Playback()
+// 	}
+// }
 module.exports = WebPlayer

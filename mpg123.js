@@ -5,18 +5,18 @@ const STATUS_PAUSE = 0
 class mpg123 {
 	constructor() {
 		this.mpg123_app = spawn('mpg123', ['-R'])
-		this.mpg123_app.setEncoding('utf8')
+		this.mpg123_app.stdin.setEncoding('utf8')
 	}
 
 	set_source(source) {
 		this.status = STATUS_PLAY
-		console.log('song url as' + source);
-		this.mpg123_app.stdin.write(`LOAD ${source}\n`)
+		console.log('song url as: ' + source);
+		this.mpg123_app.stdin.write(`L ${source}\n`)
 		console.log('source loaded');
 	}
 
 	pause() {
-		if(this.status = STATUS_PLAY) {
+		if(this.status == STATUS_PLAY) {
 			this.mpg123_app.stdin.write(`P\n`)
 			this.status = STATUS_PAUSE
 		}
@@ -25,7 +25,7 @@ class mpg123 {
 	}
 
 	play() {
-		if(this.status = STATUS_PAUSE) {
+		if(this.status == STATUS_PAUSE) {
 			this.mpg123_app.stdin.write(`P\n`)
 			this.status = STATUS_PLAY
 		}
