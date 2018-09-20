@@ -1,8 +1,8 @@
 const amixer = require('./amixer')
 
 const playerState = {
-	webActive: 			0,
-	bluetoothActive: 	1,
+	webActive: 			'webActive',
+	bluetoothActive: 	'blueActive',
 }
 
 function ResumeHandler(object) {
@@ -58,22 +58,22 @@ function PrevHandler(object) {
 	console.log('Prev Handler');
 	console.log(object.activeState);
 	if(object.activeState == playerState.webActive) {
-		console.log('Web prev');
+		console.log('Web Prev');
 	}
 	else {
-		console.log('bluetooth prev');
+		console.log('bluetooth Prev');
 	}
 }
 
 function W_NewSongHandler(object) {
 	console.log('Web play new song');
-	console.log('objstate: ' + object.activeState);
+	console.log(object.activeState);
 	object.webPlayer.streamURL = object.url
 	object.webPlayer.Start()
 }
 
 function B_PlayHandler(object) {
-	console.log('Bluetooth play');
+	console.log('Bluetooth is playing');
 	console.log(object.activeState);
 }
 

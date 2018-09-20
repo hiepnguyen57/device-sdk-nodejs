@@ -97,7 +97,7 @@ var recognizeStream;
 var isRecording = false;
 
 var music_manager = require('./bluetooth').music_player
-//const set_bluetooth_discoverable = require('./bluetooth').set_bluetooth_discoverable()
+//const bluetooth_discoverable = require('./bluetooth').bluetooth_discoverable
 const bluetooth_init = require('./bluetooth').bluetooth_init
 const events = require('./music_player').events
 const amixer = require('./amixer')
@@ -226,6 +226,8 @@ client.on("pong", (data, flags) => {
 client.on("error", (error) => {
     clientIsOnline = false
 });
+
+
 /**
  * Play STT streaming
  *
@@ -263,7 +265,8 @@ function playTTSStream(serverStream, options) {
     return playevent;
 }
 
-async function newAudioPlay(serverStream, url)
+
+async function webPlayNewSong(serverStream, url)
 {
     var speaker = new Speaker(audioOptions);
     var reader = new wav.Reader()
@@ -314,13 +317,6 @@ function playFileStream(serverStream, options) {
 function playStream(input, directive, options) {
     return new Promise(async resolve => {
         var event;
-
-        // const is_src = await mp.command_input('issrc');
-        // const is_play = await mp.command_input('isplay');
-
-        // if (is_play == 'play') {
-        //     mp.command_input('pause');
-        // }
         music_manager.eventsHandler(events.Pause)
 
         if (directive.payload.format == "file") {
@@ -334,12 +330,7 @@ function playStream(input, directive, options) {
             event = playTTSStream(input)
         }
 
-        /* When finishing streaming, need to restore the sound volume */
         event.on('end', async() => {
-            //mp.command_input('fadeOutVol')
-            // if (is_play == 'play') {
-            //     mp.command_input('play');
-            // }
             music_manager.eventsHandler(events.Resume)
         })
         resolve(event);
@@ -392,9 +383,7 @@ client.on("stream", async (serverStream, directive) => {
     if (directive.header.namespace == "AudioPlayer" && directive.header.name == "Play") {
         const url = directive.payload.audioItem.stream.url;
         console.log("Playing song at url: " + JSON.stringify(directive.payload));
-
-        await newAudioPlay(serverStream, url)
-
+        await webPlayNewSong(serverStream, url)
         EndPlaystream.emit('end');
         return
     }
@@ -461,13 +450,13 @@ client.on("stream", async (serverStream, directive) => {
     if (directive.header.namespace == "Bluetooth") {
         EndPlaystream.emit('end');
         if (directive.header.name == "ConnectByDeviceId") {
-    //        await set_bluetooth_discoverable('off')
-    //        await set_bluetooth_discoverable('on')
+            //await bluetooth_discoverable('off')
+            //await bluetooth_discoverable('on')
             await exec(`aplay ${current_path}/Sounds/${'bluetooth_connected_322896.wav'}`)
 
         }
         else if (directive.header.name == "DisconnectDevice") {
-    //        await set_bluetooth_discoverable('off')
+           // await bluetooth_discoverable('off')
         }
     }
 
@@ -490,12 +479,6 @@ client.on("stream", async (serverStream, directive) => {
     /* PUT this at last to avoid earlier matching */
     if ((directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "ExpectSpeech")
         || (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Speak")) {
-            // print.log(1, "SpeechSynthesizer while Playing Music - Playing Stream below")
-            // const playStreamevent = await playStream(serverStream, directive);
-            // playStreamevent.on('end', () => {
-            //     EndPlaystream.emit('end');
-            // })
-
             print.log(1, "SpeechSynthesizer only Playing Stream below")
             const playStreamevent = await playStream(serverStream, directive);
             playStreamevent.on('end', () => {
@@ -510,7 +493,7 @@ client.on("stream", async (serverStream, directive) => {
  * When quit app need to do somethings.
  */
 async function quit() {
-    //await set_bluetooth_discoverable('off')
+    //await bluetooth_discoverable('off')
     process.exit()
 }
 
@@ -558,11 +541,12 @@ gpio48.watch((err, value) => {
  * @param {} ();
  */
 async function main() {
-    ioctl.reset()//reset Micarray for running
+    //ioctl.reset()//reset Micarray for running
     await bluetooth_init()
 
-    console.log('set default volume as 60%');
-    await amixer.volume_control('setvolume 60')
+    console.log('set default volume as 40%');
+    await amixer.volume_control('setvolume 40')
+
     promptInput('Command > ', input => {
         var command, arg;
         var index_str = input.indexOf(" ");
@@ -574,7 +558,6 @@ async function main() {
         else {
             command = input;
         }
-
         switch (command) {
             case 'r': /* Start recording */
                 if(isRecording != true) {

@@ -4,6 +4,7 @@ const dbus = require('dbus-native')
 const systemBus =  dbus.systemBus()
 var service = systemBus.getService('org.bluez')
 const exec = require("child_process").exec;
+const current_path = require('path').dirname(require.main.filename)
 
 var device_info = {}
 device_info.address = ''
@@ -13,6 +14,10 @@ var bluealsa_aplay_exec
 const music_player = require('./music_player').getMusicManager()
 const events = require('./music_player').events
 var device = null
+
+const VA_BLE_CONNECTED = 'VA_bluetooth_connected.wav';
+const BLE_CONNECTED = 'bluetooth_connected_322896.wav';
+const BLE_DISCONNECTED = 'bluetooth_disconnected_322894.wav';
 
 function bluealsa_aplay_connect() {
 	if(bluealsa_aplay_exec == undefined) {
@@ -42,7 +47,9 @@ async function bluez_handler() {
 	bluetooth.on('device connected', async(address, obj) => {
 		device_info.address = address
 		device_info.objPath = obj
+		await exec(`aplay ${current_path}/Sounds/${VA_BLE_CONNECTED}`)
 		await bluealsa_aplay_connect()
+		device = await bluetooth.getDevice(obj)
 		console.log('New device connected as ' + address);
 	})
 
@@ -52,7 +59,8 @@ async function bluez_handler() {
 		device = null
 
 		music_player.eventsHandler(events.B_Finished)
-		bluealsa_aplay_disconnect()
+		await bluealsa_aplay_disconnect()
+		await exec(`aplay ${current_path}/Sounds/${BLE_DISCONNECTED}`)
 		console.log('device disconnected');
 	})
 
@@ -85,27 +93,26 @@ async function bluetooth_init() {
     await bluetooth.init()
     exec('python ./agent.py')
     console.log('Agent registered');
-    //await bluez_handler()
+    await bluez_handler()
     const adapter = await bluetooth.getAdapter('hci0');
     await adapter.Powered('on');
 }
 
-// async function set_bluetooth_discoverable(command) {
-// 	const adapter = await bluetooth.getAdapter('hci0')
-// 	if(command == 'on') {
-// 		await adapter.Discoverable('on')
-// 	}
-// 	else {//command = 'off'
-// 		if(device != null && device_info.objPath != '') {
-// 			device = await bluetooth.getDevice(device_info.objPath)
-// 			await device.Disconnect()
-// 		}
-// 		await adapter.Discoverable('off')
-// 	}
-// }
+async function bluetooth_discoverable(command) {
+	const adapter = await bluetooth.getAdapter('hci0')
+	if(command == 'on') {
+		await adapter.Discoverable('on')
+	}
+	else {//command = 'off'
+		if(device != null) {
+			await device.Disconnect()
+		}
+		await adapter.Discoverable('off')
+	}
+}
 
 module.exports.music_player = music_player
-//module.exports.set_bluetooth_discoverable = set_bluetooth_discoverable
+module.exports.bluetooth_discoverable = bluetooth_discoverable
 module.exports.device_info = device_info
 module.exports.bluetooth_init = bluetooth_init
 module.exports.bluetooth = bluetooth

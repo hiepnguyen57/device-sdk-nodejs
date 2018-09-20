@@ -4,19 +4,19 @@ const mp_events = require('./mp_events')
 var music_manger =  null
 
 const events = {
-	Resume: 0,
-	Pause: 1,
-	Stop: 2,
-	Next: 3,
-	Prev: 4,
-	W_NewSong: 5,
-	B_Play: 6,
-	B_Finished: 7,
-	SetVolume: 8,
-	FadeInVolume: 9,
-	FadeOutVolume: 10,
-	VolumeUp: 11,
-	VolumeDown: 12,
+	Resume: 		0,
+	Pause: 			1,
+	Stop: 			2,
+	Next: 			3,
+	Prev: 			4,
+	W_NewSong: 		5,
+	B_Play: 		6,
+	B_Finished: 	7,
+	SetVolume: 		8,
+	FadeInVolume: 	9,
+	FadeOutVolume: 	10,
+	VolumeUp: 		11,
+	VolumeDown: 	12,
 }
 
 
@@ -67,12 +67,12 @@ class MusicManager {
 			}
 		}
 		else
-			console.log('remain the same priority');
+			console.log('remain the same priority below');
 	}
 
 	eventsHandler(newEvent) {
 		this.switchContext(newEvent)
-		console.log('activeState: ' + this.activeState);
+		console.log(this.activeState);
 
 		switch(newEvent) {
 			case events.Resume:
@@ -99,7 +99,9 @@ class MusicManager {
 			case events.B_Finished:
 				mp_events.B_FinishedHandler(this)
 				break;
-
+			default:
+				console.log('nothing event here');
+				break;
 		}
 	}
 

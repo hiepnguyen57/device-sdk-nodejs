@@ -44,7 +44,8 @@ class BluePlayer {
 				this.bluetooth.setMediaControl(objPath, 'bleplay')
 				this.setState('playing')
 			}
-
+			else
+				console.log('no device connected');
 		}
 	}
 
@@ -55,7 +56,8 @@ class BluePlayer {
 				this.bluetooth.setMediaControl(objPath, 'blepause')
 				this.setState('paused')
 			}
-
+			else
+				console.log('no device connected');
 		}
 	}
 
@@ -66,19 +68,10 @@ class BluePlayer {
 				this.bluetooth.setMediaControl(objPath, 'blestop')
 				this.setState('stopped')
 			}
+			else
+				console.log('no device connected');
 		}
 	}
 }
 
-// class BluePlayer {
-// 	constructor() {
-// 		this.playback_object = new Playback()
-// 		// this.eventGroup = {
-// 		// 	Event.StatusChanged: 	this.playback_object.setState,
-// 		// 	Event.PlaybackResumed: 	this.playback_object.Play(),
-// 		// 	Event.PlaybackStopped: 	this.playback_object.Stop(),
-// 		// 	Event.PlaybackPaused: 	this.playback_object.Pause(),
-// 		// }
-// 	}
-// }
 module.exports = BluePlayer
