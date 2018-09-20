@@ -54,8 +54,6 @@ const exec = require("child_process").exec;
 const i2c = require('i2c-bus')
 const gpio = require('onoff').Gpio
 var ioctl = require('./ioctl')
-var EventEmitter = require('events').EventEmitter
-var BufferEvents = new EventEmitter()
 
 // Export gpio48 as an interrupt generating input with a debounceTimeout of 10
 const gpio48 = new gpio(48, 'in', 'rising', {debounceTimeout: 10})
@@ -209,7 +207,7 @@ function stopStream() {
         isRecording = false
 
         //send end of sentence to mic-array
-        BufferEvents.emit('user event', WAKE_WORD_STOP)
+        Buffer_UserEvent(WAKE_WORD_STOP)
         amixer.volume_control('fadeOutVol')
     }
 }
@@ -359,7 +357,8 @@ client.on("stream", async (serverStream, directive) => {
     if (directive.header.name == "Recognize" && directive.payload.format == "AUDIO_L16_RATE_16000_CHANNELS_1") {
         //ioctl.reset()
         console.log('xin loi eo ghi am duoc!!!');
-        BufferEvents.emit('user event', RECORD_ERROR)
+        Buffer_UserEvent(RECORD_ERROR)
+
     }
 
     if (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "ErrorExpectSpeech") {
@@ -438,12 +437,12 @@ client.on("stream", async (serverStream, directive) => {
         if (directive.header.name == "SetMute") {
             if (directive.payload.mute == true)
             {   /* Mute */
-                BufferEvents.emit('button', VOLUME_MUTE)
+                Buffer_ButtonEvent(VOLUME_MUTE)
                 EndPlaystream.emit('end');
             }
             else
             {   /* Unmute */
-                BufferEvents.emit('button', VOLUME_UNMUTE)
+                Buffer_ButtonEvent(VOLUME_UNMUTE)
                 EndPlaystream.emit('end');
                 return;
             }
@@ -527,18 +526,18 @@ function promptInput(prompt, handler) {
     });
 }
 
-gpio48.watch((err, value) => {
+gpio48.watch(async(err, value) => {
     if (err) {
         throw err;
     }
     //console.log('Receiving data from Mic-array')
-    i2c1.i2cReadSync(I2C_ADDRESS, BUFF_SIZE, RxBuff, function(error) {
+    await i2c1.i2cReadSync(I2C_ADDRESS, BUFF_SIZE, RxBuff, function(error) {
         if(err) {
             ioctl.reset()
             throw err;
         }
     })
-    BufferEvents.emit('i2c event', RxBuff[0], RxBuff[1])
+    BufferController(RxBuff[0], RxBuff[1])
 })
 
 /**
@@ -592,9 +591,8 @@ async function main() {
     });
 }
 
-
-BufferEvents.on('button', async(command)=> {
-    var current_vol;
+async function Buffer_ButtonEvent(command) {
+    var current_vol
 
     switch(command) {
         case VOLUME_UP:
@@ -651,81 +649,72 @@ BufferEvents.on('button', async(command)=> {
             }
             break;
     }
-})
+}
 
-BufferEvents.on('led ring', async(command) => {
+async function Buffer_LedRingEvent(command) {
+
+}
+
+
+async function Buffer_UserEvent(command) {
     switch(command) {
-
-    }
-})
-
-BufferEvents.on('user event', async(command) => {
-    switch(command)
-    {
         case WIFI_CONNECTED:
-            ioctl.Transmit(USER_EVENT, WIFI_CONNECTED)
+            await ioctl.Transmit(USER_EVENT, WIFI_CONNECTED)
             console.log('wifi was connected')
             break;
         case WIFI_DISCONNECTED:
-            ioctl.Transmit(USER_EVENT, WIFI_DISCONNECTED)
+            await ioctl.Transmit(USER_EVENT, WIFI_DISCONNECTED)
             console.log('wifi was disconnected')
             break;
         case WAKE_WORD_STOP:
-            ioctl.Transmit(USER_EVENT, WAKE_WORD_STOP)
+            await ioctl.Transmit(USER_EVENT, WAKE_WORD_STOP)
             console.log('wakeword end')
             break;
         case MICROPHONE_MUTE:
-            ioctl.Transmit(USER_EVENT, MICROPHONE_MUTE)
+            await ioctl.Transmit(USER_EVENT, MICROPHONE_MUTE)
             console.log('microphone mute')
             break;
         case MICROPHONE_UNMUTE:
-            ioctl.Transmit(USER_EVENT, MICROPHONE_UNMUTE)
+            await ioctl.Transmit(USER_EVENT, MICROPHONE_UNMUTE)
             console.log('microphone unmute')
             break;
         case VOLUME_MUTE:
-            ioctl.mute()
-            ioctl.Transmit(USER_EVENT, VOLUME_MUTE)
+            await ioctl.Transmit(USER_EVENT, VOLUME_MUTE)
+            await ioctl.mute()
             console.log('muted');
             break;
         case RECORD_ERROR:
-            ioctl.Transmit(USER_EVENT, RECORD_ERROR);
+            await ioctl.Transmit(USER_EVENT, RECORD_ERROR);
             console.log('record error!!!');
             break;
         case BLE_ON:
-            ioctl.Transmit(USER_EVENT, BLE_ON);
+            await ioctl.Transmit(USER_EVENT, BLE_ON);
             console.log('turn on bluetooth');
             break;
         case BLE_OFF:
-            ioctl.Transmit(USER_EVENT, BLE_OFF)
+            await octl.Transmit(USER_EVENT, BLE_OFF)
             console.log('turn off bluetooth');
             break;
     }
-})
+}
 
-
-function Controller(target, command) {
+async function BufferController(target, command) {
     switch(target) {
         case LED_RING:
-            BufferEvents.emit('led ring', command)
+            await Buffer_LedRingEvent(command)
             break;
         case CYPRESS_BUTTON:
-            BufferEvents.emit('button', command)
+            await Buffer_ButtonEvent(command)
             break;
         case USER_EVENT:
-            BufferEvents.emit('user event', command)
+            await Buffer_UserEvent(command)
             break;
     }
 }
 
 
-BufferEvents.on('i2c event', async(target, command) => {
-    setImmediate(() => {
-        Controller(target, command)
-    })
-})
-
 bluez_event.on('state', async(state) => {
-    console.log('bluetooth state: ' + state);
+    //console.log('bluetooth state: ' + state);
     music_manager.bluePlayer.setState(state)
     if(state == 'playing') {
         music_manager.eventsHandler(events.B_Play)
@@ -737,7 +726,6 @@ bluez_event.on('state', async(state) => {
 
 
 bluez_event.on('finished', async() => {
-    console.log('bluez_event: Finishedddd');
     music_manager.eventsHandler(events.B_Finished)
     music_manager.isMusicPlaying = false
 })

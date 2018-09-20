@@ -29,19 +29,22 @@ function reset() {
 }
 
 exports.Transmit = function(target, command, value) {
-	//create pulse before transmission
-	pulse()
-
-	//console.log('Sending data to Mic-array');
-	data[0] = target
-	data[1] = command
-	data[2] = value
-	i2c1.i2cWriteSync(I2C_ADDRESS, BUFF_SIZE, data, function(err) {
-		if (err) {
-			reset()
-			throw err;
-		}
+	return new Promise(async resolve => {
+		//create pulse before transmission
+		pulse()
+		//console.log('Sending data to Mic-array');
+		data[0] = target
+		data[1] = command
+		data[2] = value
+		i2c1.i2cWriteSync(I2C_ADDRESS, BUFF_SIZE, data, function(err) {
+			if (err) {
+				reset()
+				throw err;
+			}
+			resolve()
+		})
 	})
+
 }
 
 exports.mute = function() {
