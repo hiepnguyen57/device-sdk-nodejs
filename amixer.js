@@ -29,11 +29,11 @@ function volume_control(input) {
 				console.log('recent volume: ' + appvol);
 				if (command == 'volumeup') {
 					if (appvol < offset_min_volume) appvol = offset_min_volume
-					appvol += 5;
+					appvol += 10;
 					if (appvol > 100) appvol = 100;
 				}
 				else {
-					appvol -= 5;
+					appvol -= 10;
 					if (appvol <= offset_min_volume)
 						appvol = 0;
 				}

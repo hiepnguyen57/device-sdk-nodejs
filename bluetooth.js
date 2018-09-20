@@ -58,12 +58,12 @@ async function bluez_handler() {
 	})
 
 	bluetooth.on('device disconnected', async() => {
+		//remove informations which device connected
 		device_info.address = ''
 		device_info.objPath = ''
 		MacAddress = ''
 		device = null
 
-		//music_player.eventsHandler(events.B_Finished)
 		await bluealsa_aplay_disconnect()
 		await exec(`aplay ${current_path}/Sounds/${BLE_DISCONNECTED}`)
 		bluez_event.emit('finished')
@@ -99,12 +99,15 @@ async function bluetooth_init() {
 async function bluetooth_discoverable(command) {
 	const adapter = await bluetooth.getAdapter('hci0')
 	if(command == 'on') {
+		await adapter.Discoverable('off')
 		await adapter.Discoverable('on')
 	}
 	else {//command = 'off'
 		if(device != null) {
 			await device.Disconnect()
 		}
+		else
+			await exec(`aplay ${current_path}/Sounds/${BLE_DISCONNECTED}`)
 		await adapter.Discoverable('off')
 	}
 }

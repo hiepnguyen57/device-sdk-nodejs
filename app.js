@@ -63,7 +63,6 @@ const LED_RING = 0x00
 const MIC_ARRAY = 0x01
 const CYPRESS_BUTTON = 0x02
 const USER_EVENT = 0x03
-
 const VOLUME_UP = 0x20
 const VOLUME_DOWN = 0x21
 const VOLUME_MUTE = 0x22
@@ -356,20 +355,6 @@ client.on("stream", async (serverStream, directive) => {
         //ioctl.reset()
         console.log('xin loi eo ghi am duoc!!!');
         Buffer_UserEvent(RECORD_ERROR)
-
-    }
-
-    if (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "ErrorExpectSpeech") {
-        onSession = true;
-        dialogRequestId = directive.header.dialogRequestId;
-        lastInitiator = directive.payload.initiator;
-        // if (await mp.command_input('isplay') == 'play') {
-        //     mp.command_input('stop');
-        // }
-        console.log('what the fuck is going on');
-        /* Need to restore sound volume when finish recoding streaming */
-        EndPlaystream.emit('end');
-        return;
     }
 
     if (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Empty") {
@@ -453,7 +438,7 @@ client.on("stream", async (serverStream, directive) => {
     if (directive.header.namespace == "Bluetooth") {
         EndPlaystream.emit('end');
         if (directive.header.name == "ConnectByDeviceId") {
-            await bluetooth_discoverable('off')
+            //await bluetooth_discoverable('off')
             await bluetooth_discoverable('on')
             await exec(`aplay ${current_path}/Sounds/${'bluetooth_connected_322896.wav'}`)
 
@@ -470,12 +455,8 @@ client.on("stream", async (serverStream, directive) => {
         EndPlaystream.emit('end');
         console.log('switch audio source');
         // if (directive.header.name == "Cloud") {
-        //     await mp.command_input('src APP');
-        //     mp.command_input('play');
         // }
         // else if (directive.header.name == "Bluetooth") {
-        //     await mp.command_input('src BLE');
-        //     mp.command_input('play');
         // }
     }
 
@@ -549,8 +530,8 @@ async function main() {
     await bluetooth_init()
     await event_watcher()
 
-    console.log('set default volume as 40%');
-    await amixer.volume_control('setvolume 40')
+    console.log('set default volume as 50%');
+    await amixer.volume_control('setvolume 50')
 
     promptInput('Command > ', input => {
         var command, arg;
@@ -724,13 +705,12 @@ bluez_event.on('state', async(state) => {
         music_manager.isMusicPlaying = false
 })
 
-
 bluez_event.on('finished', async() => {
     music_manager.eventsHandler(events.B_Finished)
     music_manager.isMusicPlaying = false
 })
+
 /**
  * Main: running first
  */
-
 main();
