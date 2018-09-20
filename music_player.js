@@ -100,11 +100,9 @@ class MusicManager {
 				break;
 			case events.B_Play:
 				mp_events.B_PlayHandler(this)
-				this.isMusicPlaying = true
 				break;
 			case events.B_Finished:
 				mp_events.B_FinishedHandler(this)
-				this.isMusicPlaying = false
 				break;
 			default:
 				console.log('nothing event here');

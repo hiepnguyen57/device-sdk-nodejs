@@ -703,7 +703,6 @@ BufferEvents.on('user event', async(command) => {
 })
 
 
-
 function Controller(target, command) {
     switch(target) {
         case LED_RING:

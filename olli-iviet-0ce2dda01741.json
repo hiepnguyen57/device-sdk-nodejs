@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "olli-iviet",
+  "private_key_id": "0ce2dda017413e609a6013a6f659516be4302442",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCIKmeYOCxW4713\nH02bP5iKoytCPxTfAhpRhwXg82vvE/kqlZGSc37yYFKCXVbyXzfdTPqBpi0TBj3Z\n0e5CFC9EOiVhI0MwxjzElxSaZhKLh2IjuaCjevxeG+8A7mB7LOZN5u9AWCO6UthV\nan9UYYGjaGwhnXs2eFVCBh3eDLFIgzXcNM5sR6t65ga4gaxA7GurcxXGUcWjkl74\nGHUZfd9R7PCiQ/SrPOp7c+I1PjooicBwfIfcuJOAsLKk2sr2biRTq1WZk81iQCJu\nRrv/V6gqNYnJ5jG+jxL92X3LQ1463lvetG0skqd1Vxz0v0s4CBJDxE3OB8KNrVy5\nTqAWIgOxAgMBAAECggEACngwNO0Ew72JANLAVdKC+Q3ospRFF4yC14fpNM2im+RO\nQS703WzR8vLjBTEGEWau1e4oSLWtO4w8TzYr+pqws69A1oIulV54p6jyJZj5jg7f\nxd1s84TuSJIfQ1QQyQe/wXejJ7BfNuFNzut8VNGWdSj/P2prYdnIvGXaAAu7ydZo\nJKccyw6ILo3xyGcoYdiTwrN7kGh6QKOe3KFXAvUBmd8E+Z7bNp4pFvIyEBLWWGPe\n9Br5XpPI83ao31iAUSUt8T8lvIDiqnV/YxvgwA8LMGkVveU/oIKLij7VocDriEfh\nMuDJJwjDGJ6/GYSz/oo1lXmEbXkTlZ29aCjKh+HaEQKBgQC7n6wTSd1n7RQx98Zb\nswqNkcLWocs5qc9C7Qh0FlMayxmBQ0q4ICSbHgz8FWt+R0hK/TtV8OIhLhUgOoQ5\nCT2MG+SuSDLLWVa6EJnOLN2qeA46quieDlEH7k/0220lOUZEfIAKlmEgT8UhXVVU\nCn9Gk0L8bqgw8dGRjfAchoYtBQKBgQC5yfVtpm/+GdQMnos25e1ehJ4ypoe7haGa\nvCdxUweVSRFfYtfd7DZzlR6AztjcIPPdMVCqgFRCtPvG8jga3Ew6NZY9DeFHXUnX\nSltLZ+aYxtEWX9EL2f6JN40y8nNYFoEai7ZJ57zgPLGl0kEx5QbvXqe6/ncJhXAJ\nqcJB42pbvQKBgGxXo7HvsV5V1JeWEIDbPnjJds0h2IyPthNbdMo0KgEKzsuJ5Be2\n1+yKycy3Qb9FwkUrPZw+4RVv2tslbzzQTS4e3UqWfl5WVHJVK7uWxNmvQeg20OSU\nN85wmtM18izQifb6PaXfeG6EIb1GfANvnFdQqhnCfHTm7rEyWTjfpZNRAoGBAJy9\nb5tUQUOEkssarqRgEoQdKkHdEMH5mT8r4bLPs6QUgt2QTEHj2IRml9dfqsD75AEG\na+GMZonomklbbE3s8Tpinx9fKGHGqFdDWgYh3/+gLCHOMFTpUr586VjEBt+YDM9S\nczWilkwvqEgXO/1WFSW5G5S8vbyAoObmGwbvT3mZAoGBALH9JszYAGMeSP2ZQ9E+\nZmbtdQ2qlvMDFU10J2F7WLsta420iWus2tbxAe6AHTsgc7ZOXpBtG3Q3NPFV3KvX\nQxtfA0UjJCZRDql9WFP7Yun5NuV2jOWppGPKo/iKLAaeApVVTFAKJh0MI6LFUttl\nt1GXFKLNMWzONo+vheNbfzwG\n-----END PRIVATE KEY-----\n",
+  "client_email": "iviet-skills@olli-iviet.iam.gserviceaccount.com",
+  "client_id": "117754513809343574021",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://accounts.google.com/o/oauth2/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/iviet-skills%40olli-iviet.iam.gserviceaccount.com"
+}
