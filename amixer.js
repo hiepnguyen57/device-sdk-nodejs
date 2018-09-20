@@ -27,7 +27,7 @@ function volume_control(input) {
 				appvol = parseInt(stdout.slice(0, stdout.length - 1))
 
 				console.log('recent volume: ' + appvol);
-				if (command == 'appvolup') {
+				if (command == 'volumeup') {
 					if (appvol < offset_min_volume) appvol = offset_min_volume
 					appvol += 5;
 					if (appvol > 100) appvol = 100;

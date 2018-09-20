@@ -96,12 +96,12 @@ var clientStream;
 var recognizeStream;
 var isRecording = false;
 
-var music_manager = require('./bluetooth').music_player
-//const bluetooth_discoverable = require('./bluetooth').bluetooth_discoverable
+var music_manager = require('./music_player').getMusicManager()
+const bluetooth_discoverable = require('./bluetooth').bluetooth_discoverable
 const bluetooth_init = require('./bluetooth').bluetooth_init
 const events = require('./music_player').events
 const amixer = require('./amixer')
-
+var bluez_event = require('./bluetooth').bluez_event
 /* Private function ----------------------------------------------------------*/
 /**
  * After getting the wake word, this function will stream audio recording to server.
@@ -450,13 +450,13 @@ client.on("stream", async (serverStream, directive) => {
     if (directive.header.namespace == "Bluetooth") {
         EndPlaystream.emit('end');
         if (directive.header.name == "ConnectByDeviceId") {
-            //await bluetooth_discoverable('off')
-            //await bluetooth_discoverable('on')
+            await bluetooth_discoverable('off')
+            await bluetooth_discoverable('on')
             await exec(`aplay ${current_path}/Sounds/${'bluetooth_connected_322896.wav'}`)
 
         }
         else if (directive.header.name == "DisconnectDevice") {
-           // await bluetooth_discoverable('off')
+           await bluetooth_discoverable('off')
         }
     }
 
@@ -493,7 +493,7 @@ client.on("stream", async (serverStream, directive) => {
  * When quit app need to do somethings.
  */
 async function quit() {
-    //await bluetooth_discoverable('off')
+    await bluetooth_discoverable('off')
     process.exit()
 }
 
@@ -719,7 +719,19 @@ BufferEvents.on('i2c event', async(target, command) => {
     })
 })
 
+bluez_event.on('state', async(state) => {
+    console.log('bluetooth state: ' + state);
+    music_manager.bluePlayer.setState(state)
+    if(state == 'playing') {
+        music_manager.eventsHandler(events.B_Play)
+    }
+})
 
+
+bluez_event.on('finished', async() => {
+    console.log('bluez_event: Finishedddd');
+    music_manager.eventsHandler(events.B_Finished)
+})
 /**
  * Main: running first
  */

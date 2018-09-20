@@ -5,62 +5,67 @@ const systemBus =  dbus.systemBus()
 var service = systemBus.getService('org.bluez')
 const exec = require("child_process").exec;
 const current_path = require('path').dirname(require.main.filename)
+var EventEmitter = require('events').EventEmitter
+var bluez_event = new EventEmitter()
 
 var device_info = {}
 device_info.address = ''
 device_info.objPath = ''
+
 var bluealsa_aplay_exec
-
-const music_player = require('./music_player').getMusicManager()
-const events = require('./music_player').events
 var device = null
-
+var MacAddress = ''
 const VA_BLE_CONNECTED = 'VA_bluetooth_connected.wav';
 const BLE_CONNECTED = 'bluetooth_connected_322896.wav';
 const BLE_DISCONNECTED = 'bluetooth_disconnected_322894.wav';
 
-function bluealsa_aplay_connect() {
-	if(bluealsa_aplay_exec == undefined) {
-		if(device_info.address != '') {
-			bluealsa_aplay_exec = exec(`bluealsa_aplay ${device_info.address}`)
-			console.log('bluealsa_aplay ' + device_info.address);
-		}
-	}
-	else{
-		if(bluealsa_aplay_exec.killed == true) {
-			if(device_info.address != '') {
-				bluealsa_aplay_exec = exec(`bluealsa_aplay ${device_info.address}`)
-				console.log('bluealsa_aplay ' + device_info.address);
-			}
-		}
-	}
+
+async function bluealsa_aplay_connect() {
+    if (bluealsa_aplay_exec == undefined) {
+    	if(MacAddress != '') {
+        	console.log('bluealsa-aplay: ' + MacAddress);
+        	bluealsa_aplay_exec = exec(`bluealsa-aplay ${MacAddress}`);
+    	}
+    }
+    else {
+        if (bluealsa_aplay_exec.killed == true) {
+    		if(MacAddress != '') {
+        		console.log('bluealsa-aplay: ' + MacAddress);
+        		bluealsa_aplay_exec = exec(`bluealsa-aplay ${MacAddress}`);
+    		}
+    	}
+    }
 }
 
-function bluealsa_aplay_disconnect() {
-	if(bluealsa_aplay_exec != undefined) {
-		bluealsa_aplay_exec.kill('SIGINT')
-		console.log('bluealsa_aplay disconnected');
-	}
+
+async function bluealsa_aplay_disconnect() {
+    if (bluealsa_aplay_exec != undefined) {
+        bluealsa_aplay_exec.kill('SIGINT');
+    }
 }
 
 async function bluez_handler() {
 	bluetooth.on('device connected', async(address, obj) => {
-		device_info.address = address
-		device_info.objPath = obj
+        device_info.address = address
+        device_info.objPath = obj
+        MacAddress = address
+
+		console.log('New device connected as ' + device_info.address);
 		await exec(`aplay ${current_path}/Sounds/${VA_BLE_CONNECTED}`)
 		await bluealsa_aplay_connect()
 		device = await bluetooth.getDevice(obj)
-		console.log('New device connected as ' + address);
 	})
 
 	bluetooth.on('device disconnected', async() => {
 		device_info.address = ''
 		device_info.objPath = ''
+		MacAddress = ''
 		device = null
 
-		music_player.eventsHandler(events.B_Finished)
+		//music_player.eventsHandler(events.B_Finished)
 		await bluealsa_aplay_disconnect()
 		await exec(`aplay ${current_path}/Sounds/${BLE_DISCONNECTED}`)
+		bluez_event.emit('finished')
 		console.log('device disconnected');
 	})
 
@@ -73,16 +78,14 @@ async function bluez_handler() {
 			notification.on('PropertiesChanged', async (signal, status) => {
 				if (status[0][0] == 'Status') {
 					var state = status[0][1][1][0]
-					console.log('state update: ' + state);
-					music_player.bluePlayer.setState(state)//fix here
-					//console.log(status[0][1][1][0]);
-					if (status[0][1][1][0] == 'playing') {
-						music_player.eventsHandler(events.B_Play)
-						console.log('update status: playing');
-					}
-					else if (status[0][1][1][0] == 'paused') {
-						console.log('update status: paused');
-					}
+					console.log('update state: ' + state);
+					bluez_event.emit('state', state)
+					// if (status[0][1][1][0] == 'playing') {
+					// 	console.log('update status: playing');
+					// }
+					// else if (status[0][1][1][0] == 'paused') {
+					// 	console.log('update status: paused');
+					// }
 				}
 			})
 		})
@@ -110,9 +113,9 @@ async function bluetooth_discoverable(command) {
 		await adapter.Discoverable('off')
 	}
 }
-
-module.exports.music_player = music_player
-module.exports.bluetooth_discoverable = bluetooth_discoverable
 module.exports.device_info = device_info
+
+module.exports.bluez_event = bluez_event
+module.exports.bluetooth_discoverable = bluetooth_discoverable
 module.exports.bluetooth_init = bluetooth_init
 module.exports.bluetooth = bluetooth

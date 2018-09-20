@@ -13,11 +13,10 @@
 
 //set_volume()
 var device_info = require('./test').device_info
-var bluetooth_init = require('./test').bluetooth_init
+//var bluetooth_init = require('./test').bluetooth_init
 var bluetooth = require('./test').bluetooth
 const exec = require("child_process").exec
 
-bluetooth_init()
 
 async function update() {
 	console.log('address: ' + device_info.address);
@@ -26,8 +25,8 @@ async function update() {
 		const device = await bluetooth.getDevice(device_info.objPath)
 		var DeviceName = await device.Name() + ' - A2DP'
 		console.log('DeviceName: ' + DeviceName);
-		exec(`amixer -D bluealsa sset '${DeviceName}' 65%`)
+		//exec(`amixer -D bluealsa sset '${DeviceName}' 65%`)
 
 	}
 }
-setInterval(update, 4000);
+setInterval(update, 2000);
