@@ -145,7 +145,7 @@ async function startStream(eventJSON) {
     //         //emit signal StopStream here
     //     })
 
-    var streams = recordingStream
+    var streamToServer = recordingStream
         .start({
             sampleRate: 16000,
             //threshold: 0,
@@ -176,9 +176,9 @@ async function startStream(eventJSON) {
             console.log('ended recording');
         })
 
-    streams.pipe(clientStream);
-    streams.pipe(file_record);// remove comment if you want to save recording file
-//    streams.pipe(recognizeStream);
+    streamToServer.pipe(clientStream);
+    streamToServer.pipe(file_record);// remove comment if you want to save recording file
+//    streamToServer.pipe(recognizeStream);
     print.log(1, "Speak now!!!");
 
     setTimeout(function () {
@@ -525,20 +525,21 @@ function promptInput(prompt, handler) {
         }
     });
 }
-
-gpio48.watch(async(err, value) => {
-    if (err) {
-        throw err;
-    }
-    //console.log('Receiving data from Mic-array')
-    await i2c1.i2cReadSync(I2C_ADDRESS, BUFF_SIZE, RxBuff, function(error) {
-        if(err) {
-            ioctl.reset()
+async function event_watcher() {
+    gpio48.watch(async(err, value) => {
+        if (err) {
             throw err;
         }
+        //console.log('Receiving data from Mic-array')
+        await i2c1.i2cReadSync(I2C_ADDRESS, BUFF_SIZE, RxBuff, function(error) {
+            if(err) {
+                ioctl.reset()
+                throw err;
+            }
+        })
+        BufferController(RxBuff[0], RxBuff[1])
     })
-    BufferController(RxBuff[0], RxBuff[1])
-})
+}
 
 /**
  * Main
@@ -546,8 +547,9 @@ gpio48.watch(async(err, value) => {
  * @param {} ();
  */
 async function main() {
-    //ioctl.reset()//reset Micarray for running
+    ioctl.reset()//reset Micarray for running
     await bluetooth_init()
+    await event_watcher()
 
     console.log('set default volume as 40%');
     await amixer.volume_control('setvolume 40')
