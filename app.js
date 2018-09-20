@@ -16,7 +16,6 @@ const recordingStream = require('node-record-lpcm16');
 const speech = require('@google-cloud/speech');
 const current_path = require('path').dirname(require.main.filename);
 process.env['GOOGLE_APPLICATION_CREDENTIALS'] = `${current_path}/credentials.json`;
-const print = new (require('./print'))([1, 2, 3, 4]);
 
 var rootCas = require('ssl-root-cas').create();
 rootCas.addFile(path.join(__dirname, './gd_bundle-g2-g1.crt'));
@@ -179,7 +178,7 @@ async function startStream(eventJSON) {
     streamToServer.pipe(clientStream);
     streamToServer.pipe(file_record);// remove comment if you want to save recording file
 //    streamToServer.pipe(recognizeStream);
-    print.log(1, "Speak now!!!");
+    console.log("Speak now!!!");
 
     setTimeout(function () {
         console.log('stop recording');
@@ -193,7 +192,6 @@ async function startStream(eventJSON) {
  * @param {}
  */
 function stopStream() {
-//    print.log(1, "Stop stream");
     if(file_stream != null){
         file_stream.end()
         file_stream = null
@@ -218,7 +216,7 @@ client.on("open", () => {
 })
 
 client.on("pong", (data, flags) => {
-    print.log(1, "PONG received")
+    console.log("PONG received")
 })
 
 client.on("error", (error) => {
@@ -289,7 +287,7 @@ function playFileStream(serverStream, options) {
     var decoder = lame.Decoder();
     options = options || {};
     var speaker = new Speaker(audioOptions);
-    print.log(1, "File Streaming: Speaker created")
+    console.log("File Streaming: Speaker created")
 
     function start() {
         decoder.pipe(speaker)
@@ -349,9 +347,9 @@ function playStream(input, directive, options) {
  * @param {object} directive : use to switch context and control the devices.
  */
 client.on("stream", async (serverStream, directive) => {
-    print.log(3, "Server Meta is " + JSON.stringify(directive));
-    print.log(3, "Client <--> Backend total response time");
-    print.log(2, `${directive.header.namespace} == ${directive.header.name} == ${directive.payload.format} == ${directive.header.rawSpeech} \
+    console.log("Server Meta is " + JSON.stringify(directive));
+    console.log("Client <--> Backend total response time");
+    console.log(`${directive.header.namespace} == ${directive.header.name} == ${directive.payload.format} == ${directive.header.rawSpeech} \
     == ${directive.card == null ? directive.card : directive.card.cardOutputSpeech}`)
 
     if (directive.header.name == "Recognize" && directive.payload.format == "AUDIO_L16_RATE_16000_CHANNELS_1") {
@@ -484,7 +482,7 @@ client.on("stream", async (serverStream, directive) => {
     /* PUT this at last to avoid earlier matching */
     if ((directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "ExpectSpeech")
         || (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Speak")) {
-            print.log(1, "SpeechSynthesizer only Playing Stream below")
+            console.log("SpeechSynthesizer only Playing Stream below")
             const playStreamevent = await playStream(serverStream, directive);
             playStreamevent.on('end', () => {
                 EndPlaystream.emit('end');
@@ -569,7 +567,7 @@ async function main() {
             case 'r': /* Start recording */
                 if(isRecording != true) {
                     if(clientIsOnline == true) {
-                        print.log(1, "Begin Recording")
+                        console.log("Begin Recording")
                         isRecording = true;
                         var eventJSON = eventGenerator.setSpeechRecognizer(onSession = onSession, dialogRequestId = dialogRequestId)
                         eventJSON['sampleRate'] = 16000;
@@ -636,7 +634,7 @@ async function Buffer_ButtonEvent(command) {
             //recording audio
             if(isRecording != true) {
                 if(clientIsOnline == true) {
-                    print.log(1, "Begin Recording")
+                    console.log("Begin Recording")
                     isRecording = true;
                     var eventJSON = eventGenerator.setSpeechRecognizer(onSession = onSession, dialogRequestId = dialogRequestId)
                     eventJSON['sampleRate'] = 16000;
