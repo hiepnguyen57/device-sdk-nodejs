@@ -317,7 +317,11 @@ function playFileStream(serverStream, options) {
 function playStream(input, directive, options) {
     return new Promise(async resolve => {
         var event;
-        music_manager.eventsHandler(events.Pause)
+        var musicResume = false
+        if(music_manager.isMusicPlaying == true) {
+            music_manager.eventsHandler(events.Pause)
+            musicResume = true
+        }
 
         if (directive.payload.format == "file") {
             event = playFileStream(input);
@@ -331,7 +335,9 @@ function playStream(input, directive, options) {
         }
 
         event.on('end', async() => {
-            music_manager.eventsHandler(events.Resume)
+            if(musicResume == true) {
+                music_manager.eventsHandler(events.Resume)
+            }
         })
         resolve(event);
     })
@@ -724,13 +730,17 @@ bluez_event.on('state', async(state) => {
     music_manager.bluePlayer.setState(state)
     if(state == 'playing') {
         music_manager.eventsHandler(events.B_Play)
+        music_manager.isMusicPlaying = true
     }
+    else//state = paused
+        music_manager.isMusicPlaying = false
 })
 
 
 bluez_event.on('finished', async() => {
     console.log('bluez_event: Finishedddd');
     music_manager.eventsHandler(events.B_Finished)
+    music_manager.isMusicPlaying = false
 })
 /**
  * Main: running first

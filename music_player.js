@@ -42,6 +42,7 @@ class MusicManager {
 		this.url = ''
 		this.webPlayer = new WebPlayer()
 		this.bluePlayer = new BluePlayer()
+		this.isMusicPlaying = false
 	}
 
 	switchContext(newEvent) {
@@ -77,12 +78,15 @@ class MusicManager {
 		switch(newEvent) {
 			case events.Resume:
 				mp_events.ResumeHandler(this)
+				this.isMusicPlaying = true
 				break;
 			case events.Pause:
 				mp_events.PauseHandler(this)
+				this.isMusicPlaying = false
 				break;
 			case events.Stop:
 				mp_events.StopHandler(this)
+				this.isMusicPlaying = false
 				break;
 			case events.Next:
 				mp_events.NextHandler(this)
@@ -92,12 +96,15 @@ class MusicManager {
 				break;
 			case events.W_NewSong:
 				mp_events.W_NewSongHandler(this)
+				this.isMusicPlaying = true
 				break;
 			case events.B_Play:
 				mp_events.B_PlayHandler(this)
+				this.isMusicPlaying = true
 				break;
 			case events.B_Finished:
 				mp_events.B_FinishedHandler(this)
+				this.isMusicPlaying = false
 				break;
 			default:
 				console.log('nothing event here');

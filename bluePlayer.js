@@ -1,13 +1,6 @@
 var bluetooth = require('./bluetooth').bluetooth
 var device_info = require('./bluetooth').device_info
 
-const Event = {
-	//B_PlaybackReady: 0,
-	StatusChanged: 		1,
-	PlaybackPaused: 	2,
-	PlaybackResumed: 	3,
-	PlaybackStopped: 	4
-}
 const bluePlayerState = {
 	idle: 			1,
 	playing: 		2,
@@ -29,8 +22,6 @@ class BluePlayer {
 
 	setState(state) {
 		this.currState = stateGroup[state]
-		console.log('blueState: ' + this.currState);
-		console.log('objPath of bluePlayer ' + device_info.objPath);
 	}
 
 	getState() {
@@ -39,9 +30,8 @@ class BluePlayer {
 
 	Play() {
 		var state = this.getState()
-		console.log('state of play: ' + state);
 		if((state == bluePlayerState.paused) || (state == bluePlayerState.idle)) {
-			console.log('objPath: ' + device_info.objPath);
+			//console.log('objPath: ' + device_info.objPath);
 			if(device_info.objPath != '')
 			{
 				this.bluetooth.setMediaControl(device_info.objPath, 'bleplay')
@@ -55,7 +45,7 @@ class BluePlayer {
 	Pause() {
 		var state = this.getState()
 		if(state == bluePlayerState.playing) {
-			console.log('objPath: ' + device_info.objPath);
+			//console.log('objPath: ' + device_info.objPath);
 			if(device_info.objPath != '') {
 				this.bluetooth.setMediaControl(device_info.objPath, 'blepause')
 				this.setState('paused')
@@ -68,8 +58,7 @@ class BluePlayer {
 	Stop() {
 		var state = this.getState()
 		if(state = bluePlayerState.playing) {
-			console.log('objPath: ' + device_info.objPath);
-
+			//console.log('objPath: ' + device_info.objPath);
 			if(device_info.objPath != '') {
 				this.bluetooth.setMediaControl(device_info.objPath, 'blestop')
 				this.setState('stopped')

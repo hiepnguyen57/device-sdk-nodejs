@@ -31,18 +31,21 @@ class WebPlayer {
 				console.log('invalid url');
 		}
 	}
+
 	Play() {
 		if(this.getState() == webPlayerState.paused) {
 			this.mpg123.play()
 			this.setState(webPlayerState.playing)
 		}
 	}
+
 	Pause() {
 		if(this.getState() == webPlayerState.playing) {
 			this.mpg123.pause()
 			this.setState(webPlayerState.paused)
 		}
 	}
+
 	Stop() {
 		if(this.getState() in [webPlayerState.playing,
 						webPlayerState.paused]) {
@@ -50,21 +53,20 @@ class WebPlayer {
 			this.setState(webPlayerState.stopped)
 		}
 	}
+
 	Error() {
 		if(this.getState() == webPlayerState.playing) {
 			this.setState(webPlayerState.stopped)
 		}
 	}
+
 	getState() {
 		return this.currState
 	}
+
 	setState(state) {
 		this.currState = state
 	}
 }
-// class WebPlayer {
-// 	constructor() {
-// 		this.playback_object = new Playback()
-// 	}
-// }
+
 module.exports = WebPlayer

@@ -15,40 +15,41 @@ device_info.objPath = ''
 var bluealsa_aplay_exec
 var device = null
 var MacAddress = ''
+
 const VA_BLE_CONNECTED = 'VA_bluetooth_connected.wav';
 const BLE_CONNECTED = 'bluetooth_connected_322896.wav';
 const BLE_DISCONNECTED = 'bluetooth_disconnected_322894.wav';
 
 
 async function bluealsa_aplay_connect() {
-    if (bluealsa_aplay_exec == undefined) {
-    	if(MacAddress != '') {
-        	console.log('bluealsa-aplay: ' + MacAddress);
-        	bluealsa_aplay_exec = exec(`bluealsa-aplay ${MacAddress}`);
-    	}
-    }
-    else {
-        if (bluealsa_aplay_exec.killed == true) {
-    		if(MacAddress != '') {
-        		console.log('bluealsa-aplay: ' + MacAddress);
-        		bluealsa_aplay_exec = exec(`bluealsa-aplay ${MacAddress}`);
-    		}
-    	}
-    }
+	if (bluealsa_aplay_exec == undefined) {
+		if(MacAddress != '') {
+			console.log('bluealsa-aplay: ' + MacAddress);
+			bluealsa_aplay_exec = exec(`bluealsa-aplay ${MacAddress}`);
+		}
+	}
+	else {
+		if (bluealsa_aplay_exec.killed == true) {
+			if(MacAddress != '') {
+				console.log('bluealsa-aplay: ' + MacAddress);
+				bluealsa_aplay_exec = exec(`bluealsa-aplay ${MacAddress}`);
+			}
+		}
+	}
 }
 
 
 async function bluealsa_aplay_disconnect() {
-    if (bluealsa_aplay_exec != undefined) {
-        bluealsa_aplay_exec.kill('SIGINT');
-    }
+	if (bluealsa_aplay_exec != undefined) {
+		bluealsa_aplay_exec.kill('SIGINT');
+	}
 }
 
 async function bluez_handler() {
 	bluetooth.on('device connected', async(address, obj) => {
-        device_info.address = address
-        device_info.objPath = obj
-        MacAddress = address
+		device_info.address = address
+		device_info.objPath = obj
+		MacAddress = address
 
 		console.log('New device connected as ' + device_info.address);
 		await exec(`aplay ${current_path}/Sounds/${VA_BLE_CONNECTED}`)
@@ -80,12 +81,6 @@ async function bluez_handler() {
 					var state = status[0][1][1][0]
 					console.log('update state: ' + state);
 					bluez_event.emit('state', state)
-					// if (status[0][1][1][0] == 'playing') {
-					// 	console.log('update status: playing');
-					// }
-					// else if (status[0][1][1][0] == 'paused') {
-					// 	console.log('update status: paused');
-					// }
 				}
 			})
 		})
@@ -93,12 +88,12 @@ async function bluez_handler() {
 }
 
 async function bluetooth_init() {
-    await bluetooth.init()
-    exec('python ./agent.py')
-    console.log('Agent registered');
-    await bluez_handler()
-    const adapter = await bluetooth.getAdapter('hci0');
-    await adapter.Powered('on');
+	await bluetooth.init()
+	exec('python ./agent.py')
+	console.log('Agent registered');
+	await bluez_handler()
+	const adapter = await bluetooth.getAdapter('hci0');
+	await adapter.Powered('on');
 }
 
 async function bluetooth_discoverable(command) {
@@ -113,8 +108,8 @@ async function bluetooth_discoverable(command) {
 		await adapter.Discoverable('off')
 	}
 }
-module.exports.device_info = device_info
 
+module.exports.device_info = device_info
 module.exports.bluez_event = bluez_event
 module.exports.bluetooth_discoverable = bluetooth_discoverable
 module.exports.bluetooth_init = bluetooth_init
