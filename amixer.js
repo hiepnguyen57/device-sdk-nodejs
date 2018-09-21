@@ -2,7 +2,7 @@ const util = require('util');
 const exec_promise = util.promisify(require('child_process').exec);
 const exec = require("child_process").exec;
 const AUDIO_CARD = 0 //TLV320AIC plughw:0,0
-const offset_min_volume = 25;
+const offset_min_volume = 20;
 var volBeforeFading
 var blueVolBeforeFading
 
@@ -25,8 +25,6 @@ function volume_control(input) {
 				var appvol = 0;
 				var {stdout} = await exec_promise(`amixer -c ${AUDIO_CARD} sget PCM | grep \'Right:\' | awk -F\'[][]\' \'{ print $2 }\'`);
 				appvol = parseInt(stdout.slice(0, stdout.length - 1))
-
-				console.log('recent volume: ' + appvol);
 				if (command == 'volumeup') {
 					if (appvol < offset_min_volume) appvol = offset_min_volume
 					appvol += 10;
@@ -43,6 +41,7 @@ function volume_control(input) {
 				else {
 					exec(`amixer -c ${AUDIO_CARD} set PCM ${appvol}%`)
 				}
+				console.log('volume level: ' + appvol);
 				resolve();
 				break;
 			case 'getvolume':

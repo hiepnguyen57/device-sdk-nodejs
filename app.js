@@ -33,16 +33,16 @@ var dialogRequestId = null;
 var lastInitiator = null;
 
 var mic_options = {
-    encoding: 'LINEAR16',
-    sampleRateHertz: 16000,
-    languageCode: 'vi-VN'// 'vi-VN' 'en-US'
+	encoding: 'LINEAR16',
+	sampleRateHertz: 16000,
+	languageCode: 'vi-VN'// 'vi-VN' 'en-US'
 }
 
 /* Create the Speaker instance */
 var audioOptions = {
-    channels: 2,
-    bitDepth: 16,
-    sampleRate: 44100,
+	channels: 2,
+	bitDepth: 16,
+	sampleRate: 44100,
 //    mode: lame.STEREO
 };
 
@@ -105,84 +105,84 @@ var bluez_event = require('./bluetooth').bluez_event
  * @param {object} eventJSON.
  */
 async function startStream(eventJSON) {
-    //fading volume
-    amixer.volume_control('fadeInVol')
+	//fading volume
+	amixer.volume_control('fadeInVol')
 
-    file_record = fs.createWriteStream('recorded.wav', { encoding: 'binary' })
-    //file_stream = fs.createWriteStream('streaming.wav', { encoding: 'binary'});
+	file_record = fs.createWriteStream('recorded.wav', { encoding: 'binary' })
+	//file_stream = fs.createWriteStream('streaming.wav', { encoding: 'binary'});
 
-    if(clientIsOnline == true){
-        console.log('online')
-        clientStream = client.createStream(eventJSON)
-    }
-    else {
-        console.log('offline')
-        return
-    }
+	if(clientIsOnline == true){
+		console.log('online')
+		clientStream = client.createStream(eventJSON)
+	}
+	else {
+		console.log('offline')
+		return
+	}
 
-    // const request = {
-    //     config: {
-    //         encoding: mic_options.encoding,
-    //         sampleRateHertz: mic_options.sampleRateHertz,
-    //         languageCode: mic_options.languageCode,
-    //     },
-    //     interimResults: true, /* If you want interim results, set this to true */
-    //     singleUtterance: false
-    // };
+	// const request = {
+	//     config: {
+	//         encoding: mic_options.encoding,
+	//         sampleRateHertz: mic_options.sampleRateHertz,
+	//         languageCode: mic_options.languageCode,
+	//     },
+	//     interimResults: true, /* If you want interim results, set this to true */
+	//     singleUtterance: false
+	// };
 
-    /* Create a recognize stream */
-    // recognizeStream = speech_client
-    //     .streamingRecognize(request)
-    //     .on('error', (err) => {
-    //         console.log('google speech ' + err);
-    //     })
-    //     .on('data', (data) => {
-    //     })
-    //     .on('end', () => {
-    //         console.log('google speech ended');
-    //         //emit signal StopStream here
-    //     })
+	/* Create a recognize stream */
+	// recognizeStream = speech_client
+	//     .streamingRecognize(request)
+	//     .on('error', (err) => {
+	//         console.log('google speech ' + err);
+	//     })
+	//     .on('data', (data) => {
+	//     })
+	//     .on('end', () => {
+	//         console.log('google speech ended');
+	//         //emit signal StopStream here
+	//     })
 
-    var streamToServer = recordingStream
-        .start({
-            sampleRate: 16000,
-            //threshold: 0,
-            verbose: false,
-            recordProgram: 'arecord', // Try also "rec" or "sox"
-            device: 'plughw:1,0',
-            //silence: '0'
-        })
-        // remove comment if you want to save streaming file
-        // .on('data', function(chunk) {
-        //     fifo.push(chunk);
-        //     var cache_length = fifo.length;
-        //     for(var i = 0; i < cache_length; i++){
-        //         var tmp = fifo.shift();
-        //         if(tmp != null){
-        //             console.log(tmp.length)
-        //             if(file_stream != null){
-        //                 file_stream.write(tmp);
-        //             }
-        //         }
-        //     }
-        //     fifo.clear()
-        // })
-        .on('error', (err) => {
-            console.log(err);
-        })
-        .on('end', () => {
-            console.log('ended recording');
-        })
+	var streamToServer = recordingStream
+		.start({
+			sampleRate: 16000,
+			//threshold: 0,
+			verbose: false,
+			recordProgram: 'arecord', // Try also "rec" or "sox"
+			device: 'plughw:1,0',
+			//silence: '0'
+		})
+		// remove comment if you want to save streaming file
+		// .on('data', function(chunk) {
+		//     fifo.push(chunk);
+		//     var cache_length = fifo.length;
+		//     for(var i = 0; i < cache_length; i++){
+		//         var tmp = fifo.shift();
+		//         if(tmp != null){
+		//             console.log(tmp.length)
+		//             if(file_stream != null){
+		//                 file_stream.write(tmp);
+		//             }
+		//         }
+		//     }
+		//     fifo.clear()
+		// })
+		.on('error', (err) => {
+			console.log(err);
+		})
+		.on('end', () => {
+			console.log('ended recording');
+		})
 
-    streamToServer.pipe(clientStream);
-    streamToServer.pipe(file_record);// remove comment if you want to save recording file
+	streamToServer.pipe(clientStream);
+	streamToServer.pipe(file_record);// remove comment if you want to save recording file
 //    streamToServer.pipe(recognizeStream);
-    console.log("Speak now!!!");
+	console.log("Speak now!!!");
 
-    setTimeout(function () {
-        console.log('stop recording');
-        stopStream();
-    }, 3000)
+	setTimeout(function () {
+		console.log('stop recording');
+		stopStream();
+	}, 3000)
 }
 
 /**
@@ -191,35 +191,35 @@ async function startStream(eventJSON) {
  * @param {}
  */
 function stopStream() {
-    if(file_stream != null){
-        file_stream.end()
-        file_stream = null
-        file_record = null
-    }
-    if(clientIsOnline == true){
-        console.log('stop stream');
-        recordingStream.stop();
+	if(file_stream != null){
+		file_stream.end()
+		file_stream = null
+		file_record = null
+	}
+	if(clientIsOnline == true){
+		console.log('stop stream');
+		recordingStream.stop();
 //        recognizeStream.end();
-        clientStream.end();
-        isRecording = false
+		clientStream.end();
+		isRecording = false
 
-        //send end of sentence to mic-array
-        Buffer_UserEvent(WAKE_WORD_STOP)
-        amixer.volume_control('fadeOutVol')
-    }
+		//send end of sentence to mic-array
+		Buffer_UserEvent(WAKE_WORD_STOP)
+		amixer.volume_control('fadeOutVol')
+	}
 }
 
 client.on("open", () => {
-    console.log('client ok');
-    clientIsOnline = true
+	console.log('client ok');
+	clientIsOnline = true
 })
 
 client.on("pong", (data, flags) => {
-    console.log("PONG received")
+	console.log("PONG received")
 })
 
 client.on("error", (error) => {
-    clientIsOnline = false
+	clientIsOnline = false
 });
 
 
@@ -230,50 +230,50 @@ client.on("error", (error) => {
  * @param {object} options.
  */
 function playTTSStream(serverStream, options) {
-    const playevent = new event();
-    var speaker = new Speaker(audioOptions);
-    console.log("TTS Streaming: Speaker created")
+	const playevent = new event();
+	var speaker = new Speaker(audioOptions);
+	console.log("TTS Streaming: Speaker created")
 
-    console.log('Created Speaker');
-    //var pcm = fs.createWriteStream("audio.pcm");
-    //var audio_data = new Buffer(0);
-    var reader = new wav.Reader()
-    reader.pipe(speaker)
+	console.log('Created Speaker');
+	//var pcm = fs.createWriteStream("audio.pcm");
+	//var audio_data = new Buffer(0);
+	var reader = new wav.Reader()
+	reader.pipe(speaker)
 
-    //remove below if you don't want to save audio file from server
-    // serverStream.on('data', function(chunk) {
-    //         audio_data = Buffer.concat([audio_data, chunk]);
-    //     })
-    // serverStream.on('end', function() {
-    //     console.log('file size ' + audio_data.length);
-    //     if(audio_data.length > 0){
-    //         pcm.write(audio_data)
-    //     }
-    // })
+	//remove below if you don't want to save audio file from server
+	// serverStream.on('data', function(chunk) {
+	//         audio_data = Buffer.concat([audio_data, chunk]);
+	//     })
+	// serverStream.on('end', function() {
+	//     console.log('file size ' + audio_data.length);
+	//     if(audio_data.length > 0){
+	//         pcm.write(audio_data)
+	//     }
+	// })
 
-    serverStream.pipe(reader).on('end', () => {
-        setTimeout(() => {
-            playevent.emit('end');
-        }, 300);
-    })
+	serverStream.pipe(reader).on('end', () => {
+		setTimeout(() => {
+			playevent.emit('end');
+		}, 300);
+	})
 
-    return playevent;
+	return playevent;
 }
 
 
 async function webPlayNewSong(serverStream, url)
 {
-    var speaker = new Speaker(audioOptions);
-    var reader = new wav.Reader()
-    reader.pipe(speaker)
+	var speaker = new Speaker(audioOptions);
+	var reader = new wav.Reader()
+	reader.pipe(speaker)
 
-    serverStream.pipe(reader).on('end', () => {
-        setTimeout(() => {
-        }, 300);
-    })
+	serverStream.pipe(reader).on('end', () => {
+		setTimeout(() => {
+		}, 300);
+	})
 
-    music_manager.url = url
-    music_manager.eventsHandler(events.W_NewSong)
+	music_manager.url = url
+	music_manager.eventsHandler(events.W_NewSong)
 }
 /**
  * Play audio file streaming
@@ -282,23 +282,23 @@ async function webPlayNewSong(serverStream, url)
  * @param {object} options.
  */
 function playFileStream(serverStream, options) {
-    const playevent = new event();
-    var decoder = lame.Decoder();
-    options = options || {};
-    var speaker = new Speaker(audioOptions);
-    console.log("File Streaming: Speaker created")
+	const playevent = new event();
+	var decoder = lame.Decoder();
+	options = options || {};
+	var speaker = new Speaker(audioOptions);
+	console.log("File Streaming: Speaker created")
 
-    function start() {
-        decoder.pipe(speaker)
-        serverStream.pipe(decoder).on('end', () => {
-            setTimeout(() => {
-                playevent.emit('end');
-            }, 300);
-        })
-    }
+	function start() {
+		decoder.pipe(speaker)
+		serverStream.pipe(decoder).on('end', () => {
+			setTimeout(() => {
+				playevent.emit('end');
+			}, 300);
+		})
+	}
 
-    start();
-    return playevent;
+	start();
+	return playevent;
 }
 
 /**
@@ -310,32 +310,32 @@ function playFileStream(serverStream, options) {
  */
 
 function playStream(input, directive, options) {
-    return new Promise((resolve, reject) => {
-        var event;
-        var musicResume = false
-        if(music_manager.isMusicPlaying == true) {
-            music_manager.eventsHandler(events.Pause)
-            musicResume = true
-        }
+	return new Promise((resolve, reject) => {
+		var event;
+		var musicResume = false
+		if(music_manager.isMusicPlaying == true) {
+			music_manager.eventsHandler(events.Pause)
+			musicResume = true
+		}
 
-        if (directive.payload.format == "file") {
-            event = playFileStream(input);
-        }
-        else if (directive.payload.format == "polly") {
-            event = playTTSStream(input);
-        }
+		if (directive.payload.format == "file") {
+			event = playFileStream(input);
+		}
+		else if (directive.payload.format == "polly") {
+			event = playTTSStream(input);
+		}
 
-        else if (directive.payload.format == "olli_ssml") {
-            event = playTTSStream(input)
-        }
+		else if (directive.payload.format == "olli_ssml") {
+			event = playTTSStream(input)
+		}
 
-        event.on('end', async() => {
-            if(musicResume == true) {
-                music_manager.eventsHandler(events.Resume)
-            }
-        })
-        resolve(event);
-    })
+		event.on('end', async() => {
+			if(musicResume == true) {
+				music_manager.eventsHandler(events.Resume)
+			}
+		})
+		resolve(event);
+	})
 }
 
 /**
@@ -346,146 +346,156 @@ function playStream(input, directive, options) {
  * @param {object} directive : use to switch context and control the devices.
  */
 client.on("stream", async (serverStream, directive) => {
-    console.log("Server Meta is " + JSON.stringify(directive));
-    console.log("Client <--> Backend total response time");
-    console.log(`${directive.header.namespace} == ${directive.header.name} == ${directive.payload.format} == ${directive.header.rawSpeech} \
-    == ${directive.card == null ? directive.card : directive.card.cardOutputSpeech}`)
+	console.log("Server Meta is " + JSON.stringify(directive));
+	console.log("Client <--> Backend total response time");
+	console.log(`${directive.header.namespace} == ${directive.header.name} == ${directive.payload.format} == ${directive.header.rawSpeech} \
+	== ${directive.card == null ? directive.card : directive.card.cardOutputSpeech}`)
 
-    if (directive.header.name == "Recognize" && directive.payload.format == "AUDIO_L16_RATE_16000_CHANNELS_1") {
-        //ioctl.reset()
-        console.log('xin loi eo ghi am duoc!!!');
-await exec(`aplay ${current_path}/Sounds/${'donthearanything.wav'}`)
-        Buffer_UserEvent(RECORD_ERROR)
-    }
+	if (directive.header.name == "Recognize" && directive.payload.format == "AUDIO_L16_RATE_16000_CHANNELS_1") {
+		//ioctl.reset()
+		console.log('xin loi eo ghi am duoc!!!');
+		await exec(`aplay ${current_path}/Sounds/${'donthearanything.wav'}`)
+	}
 
-    if (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Empty") {
-        onSession = true;
-        dialogRequestId = directive.header.dialogRequestId;
-        lastInitiator = directive.payload.initiator;
-        //EndPlaystream.emit('end');
-        return
-    }
+	if (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Empty") {
+		onSession = true;
+		dialogRequestId = directive.header.dialogRequestId;
+		lastInitiator = directive.payload.initiator;
+		//EndPlaystream.emit('end');
+		return
+	}
 
-    /**
-     * Playing music.
-     */
-    if (directive.header.namespace == "AudioPlayer" && directive.header.name == "Play") {
-        const url = directive.payload.audioItem.stream.url;
-        console.log("Playing song at url: " + JSON.stringify(directive.payload));
-        await webPlayNewSong(serverStream, url)
-        //EndPlaystream.emit('end');
-        return
-    }
+	/**
+	 * Playing music.
+	 */
+	if (directive.header.namespace == "AudioPlayer" && directive.header.name == "Play") {
+		const url = directive.payload.audioItem.stream.url;
+		console.log("Playing song at url: " + JSON.stringify(directive.payload));
+		await webPlayNewSong(serverStream, url)
+		//EndPlaystream.emit('end');
+		return
+	}
 
-    /**
-     * Pause music.
-     */
-    if (directive.header.namespace == "PlaybackController" && directive.header.name == "PauseCommandIssued") {
-        //EndPlaystream.emit('end');
-        console.log('Pause command');
-        music_manager.eventsHandler(events.Pause)
-        return
-    }
+	/**
+	 * Pause music.
+	 */
+	if (directive.header.namespace == "PlaybackController" && directive.header.name == "PauseCommandIssued") {
+		//EndPlaystream.emit('end');
+		console.log('Pause command');
+		music_manager.eventsHandler(events.Pause)
+		return
+	}
 
-    /**
-     * Resume music.
-     */
-    if (directive.header.namespace == "PlaybackController" && directive.header.name == "ResumeCommandIssued") {
-        //EndPlaystream.emit('end');
-        console.log('Resume Command');
-        music_manager.eventsHandler(events.Resume)
-        return
-    }
+	/**
+	 * Resume music.
+	 */
+	if (directive.header.namespace == "PlaybackController" && directive.header.name == "ResumeCommandIssued") {
+		//EndPlaystream.emit('end');
+		console.log('Resume Command');
+		music_manager.eventsHandler(events.Resume)
+		return
+	}
 
-    if (directive.header.namespace == "Alerts" && directive.header.name == "SetAlert") {
-            playStream(serverStream, directive);
-    }
+	if (directive.header.namespace == "Alerts" && directive.header.name == "SetAlert") {
+			playStream(serverStream, directive);
+	}
 
-    /**
-     * Volume adjust.
-     */
-    if (directive.header.namespace == "Speaker") {
-        if (directive.header.name == "AdjustVolume") {
-            //EndPlaystream.emit('end');
-            setTimeout(() => {
-                if (directive.payload.volume >= 0) {
-                    amixer.volume_control('volumeup')
-                }
-                else {
-                    amixer.volume_control('volumedown')
-                }
-            }, 100);
-        }
+	/**
+	 * Volume adjust.
+	 */
+	if (directive.header.namespace == "Speaker") {
+		if (directive.header.name == "AdjustVolume") {
+			//EndPlaystream.emit('end');
+			setTimeout(() => {
+				if (directive.payload.volume >= 0) {
+					amixer.volume_control('volumeup')
+				}
+				else {
+					amixer.volume_control('volumedown')
+				}
+			}, 100);
+		}
 
-        /* Volume Mute. */
-        if (directive.header.name == "SetMute") {
-            if (directive.payload.mute == true)
-            {   /* Mute */
-                Buffer_ButtonEvent(VOLUME_MUTE)
-                //EndPlaystream.emit('end');
-            }
-            else
-            {   /* Unmute */
-                Buffer_ButtonEvent(VOLUME_UNMUTE)
-                //EndPlaystream.emit('end');
-                return;
-            }
-        }
-    }
+		/* Volume Mute. */
+		if (directive.header.name == "SetMute") {
+			if (directive.payload.mute == true)
+			{   /* Mute */
+				Buffer_ButtonEvent(VOLUME_MUTE)
+				//EndPlaystream.emit('end');
+			}
+			else
+			{   /* Unmute */
+				Buffer_ButtonEvent(VOLUME_UNMUTE)
+				//EndPlaystream.emit('end');
+				return;
+			}
+		}
+	}
 
-    /**
-     * Opening bluetooth.
-     */
-    if (directive.header.namespace == "Bluetooth") {
-        if (directive.header.name == "ConnectByDeviceId") {
-            await bluetooth_discoverable('on')
-            await exec(`aplay ${current_path}/Sounds/${'bluetooth_connected_322896.wav'}`)
+	/**
+	 * Opening bluetooth.
+	 */
+	if (directive.header.namespace == "Bluetooth") {
+		var musicResume = false
+		if(music_manager.isMusicPlaying == true) {
+			music_manager.eventsHandler(events.Pause)
+			musicResume = true
+		}
 
-        }
-        else if (directive.header.name == "DisconnectDevice") {
-            await bluetooth_discoverable('off')
-        }
-        //EndPlaystream.emit('end');
-    }
+		if (directive.header.name == "ConnectByDeviceId") {
+			await bluetooth_discoverable('on')
+			await exec(`aplay ${current_path}/Sounds/${'bluetooth_connected_322896.wav'}`)
+			Buffer_UserEvent(BLE_ON)
+		}
+		else if (directive.header.name == "DisconnectDevice") {
+			await bluetooth_discoverable('off')
+			Buffer_UserEvent(BLE_OFF)
+		}
 
-    /**
-     * Switching audio source.
-     */
-    if (directive.header.namespace == "AudioSource") {
-        //EndPlaystream.emit('end');
-        console.log('switch audio source');
-        // if (directive.header.name == "Cloud") {
-        // }
-        // else if (directive.header.name == "Bluetooth") {
-        // }
-    }
+		if(musicResume == true) {
+			music_manager.eventsHandler(events.Resume)
+		}
+		//EndPlaystream.emit('end');
+	}
 
-    /* PUT this at last to avoid earlier matching */
-    if ((directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "ExpectSpeech")
-        || (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Speak")) {
-            console.log("SpeechSynthesizer only Playing Stream below")
-            const playStreamevent = await playStream(serverStream, directive);
-            playStreamevent.on('end', () => {
-                //EndPlaystream.emit('end');
-            })
+	/**
+	 * Switching audio source.
+	 */
+	if (directive.header.namespace == "AudioSource") {
+		//EndPlaystream.emit('end');
+		console.log('switch audio source');
+		// if (directive.header.name == "Cloud") {
+		// }
+		// else if (directive.header.name == "Bluetooth") {
+		// }
+	}
 
-        return
-    }
+	/* PUT this at last to avoid earlier matching */
+	if ((directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "ExpectSpeech")
+		|| (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Speak")) {
+			console.log("SpeechSynthesizer only Playing Stream below")
+			const playStreamevent = await playStream(serverStream, directive);
+			// playStreamevent.on('end', () => {
+			// 	//EndPlaystream.emit('end');
+			// })
+
+		return
+	}
 });
 
 /**
  * When quit app need to do somethings.
  */
 async function quit() {
-    await bluetooth_discoverable('off')
-    process.exit()
+	await bluetooth_discoverable('off')
+	process.exit()
 }
 
 /**
  * CTRL+C signal.
  */
 process.on('SIGINT', function () {
-    quit();
+	quit();
 });
 
 /**
@@ -495,33 +505,33 @@ process.on('SIGINT', function () {
  * @param {callback}{string} handler.
  */
 function promptInput(prompt, handler) {
-    rl.question(prompt, input => {
-        if (handler(input) != false) {
-            promptInput(prompt, handler);
-        }
-        else {
-            rl.close();
-        }
-    });
+	rl.question(prompt, input => {
+		if (handler(input) != false) {
+			promptInput(prompt, handler);
+		}
+		else {
+			rl.close();
+		}
+	});
 }
 
 function event_watcher() {
-    gpio48.watch(async(err, value) => {
-        if (err) {
-            throw err;
-        }
-        return new Promise((resolve, reject) => {
-            //console.log('Receiving data from Mic-array')
-            i2c1.i2cReadSync(I2C_ADDRESS, BUFF_SIZE, RxBuff, function(error) {
-                if(err) {
-                    ioctl.reset()
-                    return reject(err)
-                }
-            })
-            BufferController(RxBuff[0], RxBuff[1])
-            resolve()
-        })
-    })
+	gpio48.watch(async(err, value) => {
+		if (err) {
+			throw err;
+		}
+		return new Promise((resolve, reject) => {
+			//console.log('Receiving data from Mic-array')
+			i2c1.i2cReadSync(I2C_ADDRESS, BUFF_SIZE, RxBuff, function(error) {
+				if(err) {
+					ioctl.reset()
+					return reject(err)
+				}
+			})
+			BufferController(RxBuff[0], RxBuff[1])
+			resolve()
+		})
+	})
 }
 
 /**
@@ -530,110 +540,110 @@ function event_watcher() {
  * @param {} ();
  */
 async function main() {
-    ioctl.reset()//reset Micarray for running
-    await bluetooth_init()
-    event_watcher()
+	ioctl.reset()//reset Micarray for running
+	await bluetooth_init()
+	event_watcher()
 
-    console.log('set default volume as 40%');
-    await amixer.volume_control('setvolume 40')
+	console.log('set default volume as 40%');
+	await amixer.volume_control('setvolume 40')
 
-    promptInput('Command > ', input => {
-        var command, arg;
-        var index_str = input.indexOf(" ");
+	promptInput('Command > ', input => {
+		var command, arg;
+		var index_str = input.indexOf(" ");
 
-        if (index_str >= 0) {
-            command = input.slice(0, index_str);
-            arg = input.slice(index_str + 1, input.length);
-        }
-        else {
-            command = input;
-        }
-        switch (command) {
-            case 'r': /* Start recording */
-                if(isRecording != true) {
-                    if(clientIsOnline == true) {
-                        console.log("Begin Recording")
-                        isRecording = true;
-                        var eventJSON = eventGenerator.setSpeechRecognizer(onSession = onSession, dialogRequestId = dialogRequestId)
-                        eventJSON['sampleRate'] = 16000;
-                        if(onSession && lastInitiator) {
-                            eventJSON.event.payload.initiator = lastInitiator;
-                            lastInitiator = null;
-                        }
-                        onSession = false;
-                        dialogRequestId = null;
-                        startStream(eventJSON)
-                    }
-                }
+		if (index_str >= 0) {
+			command = input.slice(0, index_str);
+			arg = input.slice(index_str + 1, input.length);
+		}
+		else {
+			command = input;
+		}
+		switch (command) {
+			case 'r': /* Start recording */
+				if(isRecording != true) {
+					if(clientIsOnline == true) {
+						console.log("Begin Recording")
+						isRecording = true;
+						var eventJSON = eventGenerator.setSpeechRecognizer(onSession = onSession, dialogRequestId = dialogRequestId)
+						eventJSON['sampleRate'] = 16000;
+						if(onSession && lastInitiator) {
+							eventJSON.event.payload.initiator = lastInitiator;
+							lastInitiator = null;
+						}
+						onSession = false;
+						dialogRequestId = null;
+						startStream(eventJSON)
+					}
+				}
 
-                break;
-            case 'exit':
-            case 'quit':
-            case 'q':
-                quit()
-                return false;
-        }
-    });
+				break;
+			case 'exit':
+			case 'quit':
+			case 'q':
+				quit()
+				return false;
+		}
+	});
 }
 
 async function Buffer_ButtonEvent(command) {
-    var current_vol
+	var current_vol
 
-    switch(command) {
-        case VOLUME_UP:
-            await amixer.volume_control('volumeup')
-            current_vol = await amixer.volume_control('getvolume')
-            await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_UP, current_vol)
-            console.log('volume up')
-            break;
-        case VOLUME_DOWN:
-            await amixer.volume_control('volumedown')
-            current_vol = await amixer.volume_control('getvolume')
-            if(current_vol < 30) {
-                await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_MUTE)
-            }
-            else{
-                await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_DOWN, current_vol)
-            }
-            console.log('volume down')
-            break;
-        case VOLUME_MUTE:
-            await ioctl.mute()
-            await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_MUTE)
-            console.log('volume mute')
-            break;
-        case VOLUME_UNMUTE:
-            await ioctl.unmute()
-            await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_UNMUTE, 0x02)
-            console.log('volume unmute')
-            break;
-        case MICROPHONE_MUTE:
-            await ioctl.Transmit(CYPRESS_BUTTON, MICROPHONE_MUTE)
-            console.log('microphone mute')
-            break;
-        case MICROPHONE_UNMUTE:
-            await ioctl.Transmit(CYPRESS_BUTTON, MICROPHONE_UNMUTE)
-            console.log('microphone unmute')
-            break;
-        case BT_WAKEWORD_START:
-            //recording audio
-            if(isRecording != true) {
-                if(clientIsOnline == true) {
-                    console.log("Begin Recording")
-                    isRecording = true;
-                    var eventJSON = eventGenerator.setSpeechRecognizer(onSession = onSession, dialogRequestId = dialogRequestId)
-                    eventJSON['sampleRate'] = 16000;
-                    if(onSession && lastInitiator) {
-                        eventJSON.event.payload.initiator = lastInitiator;
-                        lastInitiator = null;
-                    }
-                    onSession = false;
-                    dialogRequestId = null;
-                    startStream(eventJSON)
-                }
-            }
-            break;
-    }
+	switch(command) {
+		case VOLUME_UP:
+			await amixer.volume_control('volumeup')
+			current_vol = await amixer.volume_control('getvolume')
+			await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_UP, current_vol)
+			console.log('volume up')
+			break;
+		case VOLUME_DOWN:
+			await amixer.volume_control('volumedown')
+			current_vol = await amixer.volume_control('getvolume')
+			if(current_vol < 30) {
+				await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_MUTE)
+			}
+			else{
+				await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_DOWN, current_vol)
+			}
+			console.log('volume down')
+			break;
+		case VOLUME_MUTE:
+			await ioctl.mute()
+			await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_MUTE)
+			console.log('volume mute')
+			break;
+		case VOLUME_UNMUTE:
+			await ioctl.unmute()
+			await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_UNMUTE)
+			console.log('volume unmute')
+			break;
+		// case MICROPHONE_MUTE:
+		// 	await ioctl.Transmit(CYPRESS_BUTTON, MICROPHONE_MUTE)
+		// 	console.log('microphone mute')
+		// 	break;
+		// case MICROPHONE_UNMUTE:
+		// 	await ioctl.Transmit(CYPRESS_BUTTON, MICROPHONE_UNMUTE)
+		// 	console.log('microphone unmute')
+		// 	break;
+		case BT_WAKEWORD_START:
+			//recording audio
+			if(isRecording != true) {
+				if(clientIsOnline == true) {
+					console.log("Begin Recording")
+					isRecording = true;
+					var eventJSON = eventGenerator.setSpeechRecognizer(onSession = onSession, dialogRequestId = dialogRequestId)
+					eventJSON['sampleRate'] = 16000;
+					if(onSession && lastInitiator) {
+						eventJSON.event.payload.initiator = lastInitiator;
+						lastInitiator = null;
+					}
+					onSession = false;
+					dialogRequestId = null;
+					startStream(eventJSON)
+				}
+			}
+			break;
+	}
 }
 
 async function Buffer_LedRingEvent(command) {
@@ -642,76 +652,76 @@ async function Buffer_LedRingEvent(command) {
 
 
 async function Buffer_UserEvent(command) {
-    switch(command) {
-        case WIFI_CONNECTED:
-            await ioctl.Transmit(USER_EVENT, WIFI_CONNECTED)
-            console.log('wifi was connected')
-            break;
-        case WIFI_DISCONNECTED:
-            await ioctl.Transmit(USER_EVENT, WIFI_DISCONNECTED)
-            console.log('wifi was disconnected')
-            break;
-        case WAKE_WORD_STOP:
-            await ioctl.Transmit(USER_EVENT, WAKE_WORD_STOP)
-            console.log('wakeword end')
-            break;
-        case MICROPHONE_MUTE:
-            await ioctl.Transmit(USER_EVENT, MICROPHONE_MUTE)
-            console.log('microphone mute')
-            break;
-        case MICROPHONE_UNMUTE:
-            await ioctl.Transmit(USER_EVENT, MICROPHONE_UNMUTE)
-            console.log('microphone unmute')
-            break;
-        case VOLUME_MUTE:
-            await ioctl.mute()
-            ioctl.Transmit(USER_EVENT, VOLUME_MUTE)
-            console.log('muted');
-            break;
-        case RECORD_ERROR:
-            await ioctl.Transmit(USER_EVENT, RECORD_ERROR);
-            console.log('record error!!!');
-            break;
-        case BLE_ON:
-            await ioctl.Transmit(USER_EVENT, BLE_ON);
-            console.log('turn on bluetooth');
-            break;
-        case BLE_OFF:
-            await ioctl.Transmit(USER_EVENT, BLE_OFF)
-            console.log('turn off bluetooth');
-            break;
-    }
+	switch(command) {
+		case WIFI_CONNECTED:
+			await ioctl.Transmit(USER_EVENT, WIFI_CONNECTED)
+			console.log('wifi was connected')
+			break;
+		case WIFI_DISCONNECTED:
+			await ioctl.Transmit(USER_EVENT, WIFI_DISCONNECTED)
+			console.log('wifi was disconnected')
+			break;
+		case WAKE_WORD_STOP:
+			await ioctl.Transmit(USER_EVENT, WAKE_WORD_STOP)
+			console.log('wakeword end')
+			break;
+		case MICROPHONE_MUTE:
+			await ioctl.Transmit(USER_EVENT, MICROPHONE_MUTE)
+			console.log('microphone mute')
+			break;
+		case MICROPHONE_UNMUTE:
+			await ioctl.Transmit(USER_EVENT, MICROPHONE_UNMUTE)
+			console.log('microphone unmute')
+			break;
+		case VOLUME_MUTE:
+			await ioctl.mute()
+			ioctl.Transmit(USER_EVENT, VOLUME_MUTE)
+			console.log('muted');
+			break;
+		case RECORD_ERROR:
+			await ioctl.Transmit(USER_EVENT, RECORD_ERROR);
+			console.log('record error!!!');
+			break;
+		case BLE_ON:
+			await ioctl.Transmit(USER_EVENT, BLE_ON);
+			console.log('turn on bluetooth');
+			break;
+		case BLE_OFF:
+			await ioctl.Transmit(USER_EVENT, BLE_OFF)
+			console.log('turn off bluetooth');
+			break;
+	}
 }
 
 async function BufferController(target, command) {
-    switch(target) {
-        case LED_RING:
-            await Buffer_LedRingEvent(command)
-            break;
-        case CYPRESS_BUTTON:
-            await Buffer_ButtonEvent(command)
-            break;
-        case USER_EVENT:
-            await Buffer_UserEvent(command)
-            break;
-    }
+	switch(target) {
+		case LED_RING:
+			await Buffer_LedRingEvent(command)
+			break;
+		case CYPRESS_BUTTON:
+			await Buffer_ButtonEvent(command)
+			break;
+		case USER_EVENT:
+			await Buffer_UserEvent(command)
+			break;
+	}
 }
 
 
 bluez_event.on('state', async(state) => {
-    //console.log('bluetooth state: ' + state);
-    music_manager.bluePlayer.setState(state)
-    if(state == 'playing') {
-        music_manager.eventsHandler(events.B_Play)
-        music_manager.isMusicPlaying = true
-    }
-    else//state = paused
-        music_manager.isMusicPlaying = false
+	//console.log('bluetooth state: ' + state);
+	music_manager.bluePlayer.setState(state)
+	if(state == 'playing') {
+		music_manager.eventsHandler(events.B_Play)
+		music_manager.isMusicPlaying = true
+	}
+	else//state = paused
+		music_manager.isMusicPlaying = false
 })
 
 bluez_event.on('finished', async() => {
-    music_manager.eventsHandler(events.B_Finished)
-    music_manager.isMusicPlaying = false
+	music_manager.eventsHandler(events.B_Finished)
+	music_manager.isMusicPlaying = false
 })
 
 /**
