@@ -34,7 +34,7 @@ class BluePlayer {
 			//console.log('objPath: ' + device_info.objPath);
 			if(device_info.objPath != '')
 			{
-				this.bluetooth.setMediaControl(device_info.objPath, 'bleplay')
+				this.bluetooth.setMediaControl(device_info.objPath, 'play')
 				this.setState('playing')
 			}
 			else
@@ -47,7 +47,7 @@ class BluePlayer {
 		if(state == bluePlayerState.playing) {
 			//console.log('objPath: ' + device_info.objPath);
 			if(device_info.objPath != '') {
-				this.bluetooth.setMediaControl(device_info.objPath, 'blepause')
+				this.bluetooth.setMediaControl(device_info.objPath, 'pause')
 				this.setState('paused')
 			}
 			else
@@ -60,7 +60,7 @@ class BluePlayer {
 		if(state = bluePlayerState.playing) {
 			//console.log('objPath: ' + device_info.objPath);
 			if(device_info.objPath != '') {
-				this.bluetooth.setMediaControl(device_info.objPath, 'blestop')
+				this.bluetooth.setMediaControl(device_info.objPath, 'stop')
 				this.setState('stopped')
 			}
 			else

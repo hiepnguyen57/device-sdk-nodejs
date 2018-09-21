@@ -58,7 +58,7 @@ async function bluez_handler() {
 	})
 
 	bluetooth.on('device disconnected', async() => {
-		//remove informations which device connected
+		//remove all informations which device connected
 		device_info.address = ''
 		device_info.objPath = ''
 		MacAddress = ''

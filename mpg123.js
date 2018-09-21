@@ -1,9 +1,10 @@
 const {spawn} = require("child_process")
 const STATUS_PLAY = 1
-const STATUS_PAUSE = 0
+const STATUS_PAUSE = 2
 
 class Mpg123 {
 	constructor() {
+		this.status = 0
 		this.mpg123_app = spawn('mpg123', ['-R']);
 		this.mpg123_app.stdin.setEncoding('utf8');
 
@@ -37,7 +38,7 @@ class Mpg123 {
 			this.status = STATUS_PLAY
 		}
 		else
-			console.log('Mpg123 in already played');
+			console.log('Mpg123 is already played');
 	}
 
 	stop() {

@@ -81,43 +81,43 @@ class Bluez extends EventEmitter {
                     console.error(err)
                 }
                 switch(command) {
-                    case 'bleplay':
+                    case 'play':
                         mediaControl.Play((err) => {
                             if(err) return resolve(err)
                             resolve('resume playback')
                         })
                         break;
-                    case 'blepause':
+                    case 'pause':
                         mediaControl.Pause((err) => {
                             if(err) return resolve(err)
                             resolve('pause playback')
                         })
                         break;
-                    case 'blestop':
+                    case 'stop':
                         mediaControl.Stop((err) => {
                             if(err) return resolve(err)
                             resolve('stop playback')
                         })
                         break;
-                    case 'blenext':
+                    case 'next':
                         mediaControl.Next((err) => {
                             if(err) return resolve(err)
                             resolve('next playback')
                         })
                         break;
-                    case 'bleprevious':
+                    case 'previous':
                         mediaControl.Previous((err) => {
                             if(err) return resolve(err)
                             resolve('previous playback')
                         })
                         break;
-                    case 'blerewind':
+                    case 'rewind':
                         mediaControl.Rewind((err) => {
                             if(err) return resolve(err)
                             resolve('rewind playback')
                         })
                         break;
-                    case 'blefastforward':
+                    case 'fastforward':
                         mediaControl.FastForward((err) => {
                             if(err) return resolve(err)
                             resolve('fastforward playback')

@@ -78,7 +78,7 @@ function B_PlayHandler(object) {
 }
 
 function B_FinishedHandler(object) {
-	console.log('B_FinishedHandler')
+	console.log('Bluetooth was finished')
 	console.log(object.activeState)
 }
 

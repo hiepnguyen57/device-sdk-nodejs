@@ -25,7 +25,7 @@ require('https').globalAgent.options.ca = rootCas;
 
 
 /* Checking and backing up the volume after and before mute */
-var EndPlaystream = new event();
+//var EndPlaystream = new event();
 
 /* for SpeechRecognizer.ExpectSpeech */
 var onSession = false;
@@ -361,7 +361,7 @@ client.on("stream", async (serverStream, directive) => {
         onSession = true;
         dialogRequestId = directive.header.dialogRequestId;
         lastInitiator = directive.payload.initiator;
-        EndPlaystream.emit('end');
+        //EndPlaystream.emit('end');
         return
     }
 
@@ -372,7 +372,7 @@ client.on("stream", async (serverStream, directive) => {
         const url = directive.payload.audioItem.stream.url;
         console.log("Playing song at url: " + JSON.stringify(directive.payload));
         await webPlayNewSong(serverStream, url)
-        EndPlaystream.emit('end');
+        //EndPlaystream.emit('end');
         return
     }
 
@@ -380,7 +380,7 @@ client.on("stream", async (serverStream, directive) => {
      * Pause music.
      */
     if (directive.header.namespace == "PlaybackController" && directive.header.name == "PauseCommandIssued") {
-        EndPlaystream.emit('end');
+        //EndPlaystream.emit('end');
         console.log('Pause command');
         music_manager.eventsHandler(events.Pause)
         return
@@ -390,7 +390,7 @@ client.on("stream", async (serverStream, directive) => {
      * Resume music.
      */
     if (directive.header.namespace == "PlaybackController" && directive.header.name == "ResumeCommandIssued") {
-        EndPlaystream.emit('end');
+        //EndPlaystream.emit('end');
         console.log('Resume Command');
         music_manager.eventsHandler(events.Resume)
         return
@@ -405,7 +405,7 @@ client.on("stream", async (serverStream, directive) => {
      */
     if (directive.header.namespace == "Speaker") {
         if (directive.header.name == "AdjustVolume") {
-            EndPlaystream.emit('end');
+            //EndPlaystream.emit('end');
             setTimeout(() => {
                 if (directive.payload.volume >= 0) {
                     amixer.volume_control('volumeup')
@@ -421,12 +421,12 @@ client.on("stream", async (serverStream, directive) => {
             if (directive.payload.mute == true)
             {   /* Mute */
                 Buffer_ButtonEvent(VOLUME_MUTE)
-                EndPlaystream.emit('end');
+                //EndPlaystream.emit('end');
             }
             else
             {   /* Unmute */
                 Buffer_ButtonEvent(VOLUME_UNMUTE)
-                EndPlaystream.emit('end');
+                //EndPlaystream.emit('end');
                 return;
             }
         }
@@ -436,23 +436,22 @@ client.on("stream", async (serverStream, directive) => {
      * Opening bluetooth.
      */
     if (directive.header.namespace == "Bluetooth") {
-        EndPlaystream.emit('end');
         if (directive.header.name == "ConnectByDeviceId") {
-            //await bluetooth_discoverable('off')
             await bluetooth_discoverable('on')
             await exec(`aplay ${current_path}/Sounds/${'bluetooth_connected_322896.wav'}`)
 
         }
         else if (directive.header.name == "DisconnectDevice") {
-           await bluetooth_discoverable('off')
+            await bluetooth_discoverable('off')
         }
+        //EndPlaystream.emit('end');
     }
 
     /**
      * Switching audio source.
      */
     if (directive.header.namespace == "AudioSource") {
-        EndPlaystream.emit('end');
+        //EndPlaystream.emit('end');
         console.log('switch audio source');
         // if (directive.header.name == "Cloud") {
         // }
@@ -466,7 +465,7 @@ client.on("stream", async (serverStream, directive) => {
             console.log("SpeechSynthesizer only Playing Stream below")
             const playStreamevent = await playStream(serverStream, directive);
             playStreamevent.on('end', () => {
-                EndPlaystream.emit('end');
+                //EndPlaystream.emit('end');
             })
 
         return
@@ -496,7 +495,7 @@ process.on('SIGINT', function () {
  */
 function promptInput(prompt, handler) {
     rl.question(prompt, input => {
-        if (handler(input) !== false) {
+        if (handler(input) != false) {
             promptInput(prompt, handler);
         }
         else {

@@ -13,6 +13,7 @@ class WebPlayer {
 		this.mpg123 = new Mpg123()
 		this.streamURL = null
 		this.currState = webPlayerState.idle
+		this.volume = 100
 	}
 
 	Start() {
@@ -66,6 +67,20 @@ class WebPlayer {
 
 	setState(state) {
 		this.currState = state
+	}
+
+	fadeInVol() {
+		while(this.volume > 20) {
+			this.volume = this.volume - 5
+			this.mpg123.set_volume(this.volume)
+		}
+	}
+
+	fadeOutVol() {
+		while(this.volume <= 100) {
+			this.volume = this.volume + 5
+			this.mpg123.set_volume(this.volume)
+		}
 	}
 }
 
