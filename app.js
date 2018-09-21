@@ -310,7 +310,7 @@ function playFileStream(serverStream, options) {
  */
 
 function playStream(input, directive, options) {
-    return new Promise(async resolve => {
+    return new Promise((resolve, reject) => {
         var event;
         var musicResume = false
         if(music_manager.isMusicPlaying == true) {
@@ -354,6 +354,7 @@ client.on("stream", async (serverStream, directive) => {
     if (directive.header.name == "Recognize" && directive.payload.format == "AUDIO_L16_RATE_16000_CHANNELS_1") {
         //ioctl.reset()
         console.log('xin loi eo ghi am duoc!!!');
+await exec(`aplay ${current_path}/Sounds/${'donthearanything.wav'}`)
         Buffer_UserEvent(RECORD_ERROR)
     }
 
@@ -503,19 +504,23 @@ function promptInput(prompt, handler) {
         }
     });
 }
-async function event_watcher() {
+
+function event_watcher() {
     gpio48.watch(async(err, value) => {
         if (err) {
             throw err;
         }
-        //console.log('Receiving data from Mic-array')
-        await i2c1.i2cReadSync(I2C_ADDRESS, BUFF_SIZE, RxBuff, function(error) {
-            if(err) {
-                ioctl.reset()
-                throw err;
-            }
+        return new Promise((resolve, reject) => {
+            //console.log('Receiving data from Mic-array')
+            i2c1.i2cReadSync(I2C_ADDRESS, BUFF_SIZE, RxBuff, function(error) {
+                if(err) {
+                    ioctl.reset()
+                    return reject(err)
+                }
+            })
+            BufferController(RxBuff[0], RxBuff[1])
+            resolve()
         })
-        BufferController(RxBuff[0], RxBuff[1])
     })
 }
 
@@ -527,10 +532,10 @@ async function event_watcher() {
 async function main() {
     ioctl.reset()//reset Micarray for running
     await bluetooth_init()
-    await event_watcher()
+    event_watcher()
 
-    console.log('set default volume as 50%');
-    await amixer.volume_control('setvolume 50')
+    console.log('set default volume as 40%');
+    await amixer.volume_control('setvolume 40')
 
     promptInput('Command > ', input => {
         var command, arg;
@@ -659,8 +664,8 @@ async function Buffer_UserEvent(command) {
             console.log('microphone unmute')
             break;
         case VOLUME_MUTE:
-            await ioctl.Transmit(USER_EVENT, VOLUME_MUTE)
             await ioctl.mute()
+            ioctl.Transmit(USER_EVENT, VOLUME_MUTE)
             console.log('muted');
             break;
         case RECORD_ERROR:
@@ -672,7 +677,7 @@ async function Buffer_UserEvent(command) {
             console.log('turn on bluetooth');
             break;
         case BLE_OFF:
-            await octl.Transmit(USER_EVENT, BLE_OFF)
+            await ioctl.Transmit(USER_EVENT, BLE_OFF)
             console.log('turn off bluetooth');
             break;
     }
