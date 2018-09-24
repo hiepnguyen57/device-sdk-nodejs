@@ -448,16 +448,16 @@ client.on("stream", async (serverStream, directive) => {
 
 		if (directive.header.name == "ConnectByDeviceId") {
 			await bluetooth_discoverable('on')
-			await exec(`aplay ${current_path}/Sounds/${'bluetooth_connected_322896.wav'}`).on('exit', function(code, signal) {
-				if(musicResume == true) {
-					music_manager.eventsHandler(events.Resume)
-				}
-			})
+			exec(`aplay ${current_path}/Sounds/${'bluetooth_connected_322896.wav'}`)
 			Buffer_UserEvent(BLE_ON)
 		}
 		else if (directive.header.name == "DisconnectDevice") {
 			await bluetooth_discoverable('off')
 			Buffer_UserEvent(BLE_OFF)
+		}
+
+		if(musicResume == true) {
+			music_manager.eventsHandler(events.Resume)
 		}
 		return
 	}
