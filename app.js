@@ -78,10 +78,10 @@ var RxBuff = new Buffer([0x00, 0x00])
 const i2c1 = i2c.openSync(1)
 var fs = require('fs')
 var fifo = require('fifo')()
-var file_stream = null
+//var file_stream = null
 var file_record = null
 
-var clientIsOnline = null
+var clientIsOnline = false
 
 var client = BinaryClient(util.format("wss://%s:8080", config.IP_SERVER));
 var clientStream;
@@ -104,13 +104,12 @@ var bluealsa_aplay_disconnect = require('./bluetooth').bluealsa_aplay_disconnect
  */
 async function startStream(eventJSON) {
 	//fading volume
-	//amixer.volume_control('fadeInVol')
-	music_manager.eventsHandler(events.FadeInVolume)
+	//music_manager.eventsHandler(events.FadeInVolume)
 
 	file_record = fs.createWriteStream('recorded.wav', { encoding: 'binary' })
 	//file_stream = fs.createWriteStream('streaming.wav', { encoding: 'binary'});
 
-	if(clientIsOnline == true){
+	if(clientIsOnline === true){
 		console.log('online')
 		clientStream = client.createStream(eventJSON)
 	}
@@ -145,11 +144,9 @@ async function startStream(eventJSON) {
 	var streamToServer = recordingStream
 		.start({
 			sampleRate: 16000,
-			//threshold: 0,
 			verbose: false,
 			recordProgram: 'arecord', // Try also "rec" or "sox"
-			device: 'plughw:1,0',
-			//silence: '0'
+			device: 'plughw:1',
 		})
 		// remove comment if you want to save streaming file
 		// .on('data', function(chunk) {
@@ -190,13 +187,14 @@ async function startStream(eventJSON) {
  * @param {}
  */
 function stopStream() {
-	if(file_stream != null){
-		file_stream.end()
-		file_stream = null
-		file_record = null
-	}
-	if(clientIsOnline == true){
+	// if(file_stream != null){
+	// 	file_stream.end()
+	// 	file_stream = null
+	// 	file_record = null
+	// }
+	if(clientIsOnline === true){
 		console.log('stop stream');
+		music_manager.eventsHandler(events.FadeOutVolume)
 		recordingStream.stop();
 //        recognizeStream.end();
 		clientStream.end();
@@ -204,8 +202,6 @@ function stopStream() {
 
 		//send end of sentence to mic-array
 		Buffer_UserEvent(WAKE_WORD_STOP)
-		//amixer.volume_control('fadeOutVol')
-		music_manager.eventsHandler(events.FadeOutVolume)
 	}
 }
 
@@ -559,7 +555,8 @@ async function main() {
 		switch (command) {
 			case 'r': /* Start recording */
 				if(isRecording != true) {
-					if(clientIsOnline == true) {
+					if(clientIsOnline === true) {
+						music_manager.eventsHandler(events.FadeInVolume)
 						console.log("Begin Recording")
 						isRecording = true;
 						var eventJSON = eventGenerator.setSpeechRecognizer(onSession = onSession, dialogRequestId = dialogRequestId)
@@ -627,7 +624,8 @@ async function Buffer_ButtonEvent(command) {
 		case BT_WAKEWORD_START:
 			//recording audio
 			if(isRecording != true) {
-				if(clientIsOnline == true) {
+				if(clientIsOnline === true) {
+					music_manager.eventsHandler(events.FadeInVolume)
 					console.log("Begin Recording")
 					isRecording = true;
 					var eventJSON = eventGenerator.setSpeechRecognizer(onSession = onSession, dialogRequestId = dialogRequestId)
