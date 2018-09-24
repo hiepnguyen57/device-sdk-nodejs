@@ -14,6 +14,7 @@ class WebPlayer {
 		this.streamURL = null
 		this.currState = webPlayerState.idle
 		this.volume = 100
+		this.volumeIsFaded = false
 	}
 
 	Start() {
@@ -69,18 +70,22 @@ class WebPlayer {
 		this.currState = state
 	}
 
-	fadeInVol() {
-		while(this.volume > 20) {
-			this.volume = this.volume - 5
-			this.mpg123.set_volume(this.volume)
+	FadeInVol() {
+		if(this.volumeIsFaded == false) {
+			while(this.volume > 20) {
+				this.volume = this.volume - 5
+				this.mpg123.set_volume(this.volume)
+			}
+			this.volumeIsFaded = true
 		}
 	}
 
-	fadeOutVol() {
-		while(this.volume <= 100) {
+	FadeOutVol() {
+		while(this.volume < 100) {
 			this.volume = this.volume + 5
 			this.mpg123.set_volume(this.volume)
 		}
+		this.volumeIsFaded = false
 	}
 }
 

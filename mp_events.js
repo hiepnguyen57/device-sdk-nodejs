@@ -1,5 +1,3 @@
-const amixer = require('./amixer')
-
 const playerState = {
 	webActive: 			'webActive',
 	bluetoothActive: 	'blueActive',
@@ -82,6 +80,28 @@ function B_FinishedHandler(object) {
 	console.log(object.activeState)
 }
 
+function FadeInVolume(object) {
+	if(object.activeState == playerState.webActive) {
+		console.log('Web: Fade In Volume');
+		object.webPlayer.FadeInVol()
+	}
+	else {
+		console.log('Bluetooth: Fade In Volume');
+		object.bluePlayer.FadeInVol()
+	}
+}
+
+function FadeOutVolume(object) {
+	if(object.activeState == playerState.webActive) {
+		console.log('Web:  Fade Out Volume');
+		object.webPlayer.FadeOutVol()
+	}
+	else {
+		console.log('Bluetooth: Fade Out Volume');
+		object.bluePlayer.FadeOutVol()
+	}
+}
+
 module.exports.playerState = playerState
 module.exports.ResumeHandler = ResumeHandler
 module.exports.PauseHandler = PauseHandler
@@ -91,3 +111,5 @@ module.exports.PrevHandler = PrevHandler
 module.exports.W_NewSongHandler = W_NewSongHandler
 module.exports.B_PlayHandler = B_PlayHandler
 module.exports.B_FinishedHandler = B_FinishedHandler
+module.exports.FadeInVolume = FadeInVolume
+module.exports.FadeOutVolume = FadeOutVolume

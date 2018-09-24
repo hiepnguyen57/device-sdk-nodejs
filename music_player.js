@@ -104,6 +104,12 @@ class MusicManager {
 			case events.B_Finished:
 				mp_events.B_FinishedHandler(this)
 				break;
+			case events.FadeInVolume:
+				mp_events.FadeInVolume(this)
+				break;
+			case events.FadeOutVolume:
+				mp_events.FadeOutVolume(this)
+				break;
 			default:
 				console.log('nothing event here');
 				break;

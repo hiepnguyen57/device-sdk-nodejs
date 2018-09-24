@@ -3,7 +3,9 @@ const bluetooth = new Bluez()
 const dbus = require('dbus-native')
 const systemBus =  dbus.systemBus()
 var service = systemBus.getService('org.bluez')
+const util = require('util');
 const exec = require("child_process").exec;
+const exec_promise = util.promisify(require('child_process').exec);
 const current_path = require('path').dirname(require.main.filename)
 var EventEmitter = require('events').EventEmitter
 var bluez_event = new EventEmitter()
@@ -19,7 +21,7 @@ var MacAddress = ''
 const VA_BLE_CONNECTED = 'VA_bluetooth_connected.wav';
 const BLE_CONNECTED = 'bluetooth_connected_322896.wav';
 const BLE_DISCONNECTED = 'bluetooth_disconnected_322894.wav';
-
+var volBeforeFading
 
 async function bluealsa_aplay_connect() {
 	if (bluealsa_aplay_exec == undefined) {
@@ -112,8 +114,70 @@ async function bluetooth_discoverable(command) {
 	}
 }
 
+async function get_bluealsa_control() {
+	if(device_info.objPath != '') {
+		var deviceName = await device.Name() + ' - A2DP'
+		//console.log('deviceName: ' + deviceName);
+		return deviceName
+	}
+	else
+		console.log('No device connected');
+}
+
+function bluealsa_volume_control(input) {
+	return new Promise(async(resolve) => {
+		var command, vol
+		var DeviceName = await get_bluealsa_control()
+		console.log('DeviceName: ' + DeviceName);
+		var index_string = input.indexOf(" ")
+		if(index_string >= 0) {
+			command = input.slice(0, index_string)
+			vol = input.slice(index_string + 1, input.length);
+		}
+		else
+			command =  input
+
+		switch(command) {
+			case 'getvolume':
+				var {stdout} = await exec_promise(`amixer -D bluealsa sget '${DeviceName}' | grep \'Right:\' | awk -F\'[][]\' \'{ print $2 }\'`);
+				resolve(parseInt(stdout.slice(0, stdout.length - 1)))
+				break;
+
+			case 'setvolume':
+				exec(`amixer -D bluealsa sset '${DeviceName}' ${vol}%`)
+				console.log('set bluealsa volume as ' + vol);
+				resolve()
+				break;
+
+			case 'fadeInVol':
+				var {stdout} = await exec_promise(`amixer -D bluealsa sget '${DeviceName}' | grep \'Right:\' | awk -F\'[][]\' \'{ print $2 }\'`);
+				var fadeinvol = parseInt(stdout.slice(0, stdout.length - 1))
+				volBeforeFading = fadeinvol
+
+				while(fadeinvol > 30) {
+					fadeinvol = fadeinvol - 5
+					exec(`amixer -D bluealsa sset '${DeviceName}' ${fadeinvol}%`)
+				}
+				resolve()
+				break;
+
+			case 'fadeOutVol':
+				var {stdout} = await exec_promise(`amixer -D bluealsa sget '${DeviceName}' | grep \'Right:\' | awk -F\'[][]\' \'{ print $2 }\'`);
+				var fadeoutvol = parseInt(stdout.slice(0, stdout.length - 1))
+
+				while(fadeoutvol < volBeforeFading) {
+					fadeoutvol = fadeoutvol + 5
+					exec(`amixer -D bluealsa sset '${DeviceName}' ${fadeoutvol}%`)
+				}
+				resolve()
+				break;
+		}
+	})
+}
+
 module.exports.device_info = device_info
 module.exports.bluez_event = bluez_event
 module.exports.bluetooth_discoverable = bluetooth_discoverable
 module.exports.bluetooth_init = bluetooth_init
 module.exports.bluetooth = bluetooth
+module.exports.bluealsa_volume_control = bluealsa_volume_control

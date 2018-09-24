@@ -23,10 +23,6 @@ rootCas.addFile(path.join(__dirname, './gd_bundle-g2-g1.crt'));
 /* will work with all https requests will all libraries (i.e. request.js) */
 require('https').globalAgent.options.ca = rootCas;
 
-
-/* Checking and backing up the volume after and before mute */
-//var EndPlaystream = new event();
-
 /* for SpeechRecognizer.ExpectSpeech */
 var onSession = false;
 var dialogRequestId = null;
@@ -43,7 +39,7 @@ var audioOptions = {
 	channels: 2,
 	bitDepth: 16,
 	sampleRate: 44100,
-//    mode: lame.STEREO
+//  mode: lame.STEREO
 };
 
 /* Creates a client */
@@ -106,7 +102,8 @@ var bluez_event = require('./bluetooth').bluez_event
  */
 async function startStream(eventJSON) {
 	//fading volume
-	amixer.volume_control('fadeInVol')
+	//amixer.volume_control('fadeInVol')
+	music_manager.eventsHandler(events.FadeInVolume)
 
 	file_record = fs.createWriteStream('recorded.wav', { encoding: 'binary' })
 	//file_stream = fs.createWriteStream('streaming.wav', { encoding: 'binary'});
@@ -205,7 +202,8 @@ function stopStream() {
 
 		//send end of sentence to mic-array
 		Buffer_UserEvent(WAKE_WORD_STOP)
-		amixer.volume_control('fadeOutVol')
+		//amixer.volume_control('fadeOutVol')
+		music_manager.eventsHandler(events.FadeOutVolume)
 	}
 }
 
@@ -361,7 +359,6 @@ client.on("stream", async (serverStream, directive) => {
 		onSession = true;
 		dialogRequestId = directive.header.dialogRequestId;
 		lastInitiator = directive.payload.initiator;
-		//EndPlaystream.emit('end');
 		return
 	}
 
@@ -372,7 +369,6 @@ client.on("stream", async (serverStream, directive) => {
 		const url = directive.payload.audioItem.stream.url;
 		console.log("Playing song at url: " + JSON.stringify(directive.payload));
 		await webPlayNewSong(serverStream, url)
-		//EndPlaystream.emit('end');
 		return
 	}
 
@@ -380,7 +376,6 @@ client.on("stream", async (serverStream, directive) => {
 	 * Pause music.
 	 */
 	if (directive.header.namespace == "PlaybackController" && directive.header.name == "PauseCommandIssued") {
-		//EndPlaystream.emit('end');
 		console.log('Pause command');
 		music_manager.eventsHandler(events.Pause)
 		return
@@ -390,7 +385,6 @@ client.on("stream", async (serverStream, directive) => {
 	 * Resume music.
 	 */
 	if (directive.header.namespace == "PlaybackController" && directive.header.name == "ResumeCommandIssued") {
-		//EndPlaystream.emit('end');
 		console.log('Resume Command');
 		music_manager.eventsHandler(events.Resume)
 		return
@@ -405,7 +399,6 @@ client.on("stream", async (serverStream, directive) => {
 	 */
 	if (directive.header.namespace == "Speaker") {
 		if (directive.header.name == "AdjustVolume") {
-			//EndPlaystream.emit('end');
 			setTimeout(() => {
 				if (directive.payload.volume >= 0) {
 					amixer.volume_control('volumeup')
@@ -419,17 +412,16 @@ client.on("stream", async (serverStream, directive) => {
 		/* Volume Mute. */
 		if (directive.header.name == "SetMute") {
 			if (directive.payload.mute == true)
-			{   /* Mute */
+			{
+				/* Mute */
 				Buffer_ButtonEvent(VOLUME_MUTE)
-				//EndPlaystream.emit('end');
 			}
-			else
-			{   /* Unmute */
+			else {
+				/* Unmute */
 				Buffer_ButtonEvent(VOLUME_UNMUTE)
-				//EndPlaystream.emit('end');
-				return;
 			}
 		}
+		return
 	}
 
 	/**
@@ -455,14 +447,13 @@ client.on("stream", async (serverStream, directive) => {
 		if(musicResume == true) {
 			music_manager.eventsHandler(events.Resume)
 		}
-		//EndPlaystream.emit('end');
+		return
 	}
 
 	/**
 	 * Switching audio source.
 	 */
 	if (directive.header.namespace == "AudioSource") {
-		//EndPlaystream.emit('end');
 		console.log('switch audio source');
 		// if (directive.header.name == "Cloud") {
 		// }
@@ -475,10 +466,6 @@ client.on("stream", async (serverStream, directive) => {
 		|| (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Speak")) {
 			console.log("SpeechSynthesizer only Playing Stream below")
 			const playStreamevent = await playStream(serverStream, directive);
-			// playStreamevent.on('end', () => {
-			// 	//EndPlaystream.emit('end');
-			// })
-
 		return
 	}
 });
@@ -544,7 +531,6 @@ async function main() {
 	await bluetooth_init()
 	event_watcher()
 
-	console.log('set default volume as 40%');
 	await amixer.volume_control('setvolume 40')
 
 	promptInput('Command > ', input => {
@@ -613,8 +599,9 @@ async function Buffer_ButtonEvent(command) {
 			console.log('volume mute')
 			break;
 		case VOLUME_UNMUTE:
+			current_vol = await amixer.volume_control('getvolume')
 			await ioctl.unmute()
-			await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_UNMUTE)
+			await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_UNMUTE, current_vol)
 			console.log('volume unmute')
 			break;
 		// case MICROPHONE_MUTE:

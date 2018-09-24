@@ -1,5 +1,6 @@
 var bluetooth = require('./bluetooth').bluetooth
 var device_info = require('./bluetooth').device_info
+var bluealsa_volume_control = require('./bluetooth').bluealsa_volume_control
 
 const bluePlayerState = {
 	idle: 			1,
@@ -18,6 +19,7 @@ class BluePlayer {
 	constructor() {
 		this.bluetooth = bluetooth
 		this.currState = bluePlayerState.idle
+		this.volumeIsFaded = false
 	}
 
 	setState(state) {
@@ -57,7 +59,7 @@ class BluePlayer {
 
 	Stop() {
 		var state = this.getState()
-		if(state = bluePlayerState.playing) {
+		if(state == bluePlayerState.playing) {
 			//console.log('objPath: ' + device_info.objPath);
 			if(device_info.objPath != '') {
 				this.bluetooth.setMediaControl(device_info.objPath, 'stop')
@@ -66,6 +68,18 @@ class BluePlayer {
 			else
 				console.log('no device connected');
 		}
+	}
+
+	FadeInVol() {
+		if(this.volumeIsFaded == false) {
+			bluealsa_volume_control('fadeInVol')
+			this.volumeIsFaded = true
+		}
+	}
+
+	FadeOutVol() {
+		bluealsa_volume_control('fadeOutVol')
+		this.volumeIsFaded = false
 	}
 }
 
