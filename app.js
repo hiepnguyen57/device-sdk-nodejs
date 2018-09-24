@@ -94,6 +94,8 @@ const bluetooth_init = require('./bluetooth').bluetooth_init
 const events = require('./music_player').events
 const amixer = require('./amixer')
 var bluez_event = require('./bluetooth').bluez_event
+var bluealsa_aplay_connect = require('./bluetooth').bluealsa_aplay_connect
+var bluealsa_aplay_disconnect = require('./bluetooth').bluealsa_aplay_disconnect
 /* Private function ----------------------------------------------------------*/
 /**
  * After getting the wake word, this function will stream audio recording to server.
@@ -350,9 +352,19 @@ client.on("stream", async (serverStream, directive) => {
 	== ${directive.card == null ? directive.card : directive.card.cardOutputSpeech}`)
 
 	if (directive.header.name == "Recognize" && directive.payload.format == "AUDIO_L16_RATE_16000_CHANNELS_1") {
+		var musicResume = false
+		if(music_manager.isMusicPlaying == true) {
+			music_manager.eventsHandler(events.Pause)
+			musicResume = true
+		}
+
 		//ioctl.reset()
 		console.log('xin loi eo ghi am duoc!!!');
-		await exec(`aplay ${current_path}/Sounds/${'donthearanything.wav'}`)
+		exec(`aplay ${current_path}/Sounds/${'donthearanything.wav'}`).on('exit', function(code, signal) {
+			if(musicResume == true) {
+					music_manager.eventsHandler(events.Resume)
+			}
+		})
 	}
 
 	if (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Empty") {
@@ -436,16 +448,16 @@ client.on("stream", async (serverStream, directive) => {
 
 		if (directive.header.name == "ConnectByDeviceId") {
 			await bluetooth_discoverable('on')
-			await exec(`aplay ${current_path}/Sounds/${'bluetooth_connected_322896.wav'}`)
+			await exec(`aplay ${current_path}/Sounds/${'bluetooth_connected_322896.wav'}`).on('exit', function(code, signal) {
+				if(musicResume == true) {
+					music_manager.eventsHandler(events.Resume)
+				}
+			})
 			Buffer_UserEvent(BLE_ON)
 		}
 		else if (directive.header.name == "DisconnectDevice") {
 			await bluetooth_discoverable('off')
 			Buffer_UserEvent(BLE_OFF)
-		}
-
-		if(musicResume == true) {
-			music_manager.eventsHandler(events.Resume)
 		}
 		return
 	}
@@ -699,11 +711,16 @@ bluez_event.on('state', async(state) => {
 	//console.log('bluetooth state: ' + state);
 	music_manager.bluePlayer.setState(state)
 	if(state == 'playing') {
-		music_manager.eventsHandler(events.B_Play)
+		await music_manager.eventsHandler(events.B_Play)
+		//need to fix when bluealsa support dmix
+		await bluealsa_aplay_connect()
 		music_manager.isMusicPlaying = true
 	}
-	else//state = paused
+	else {//state = paused
+		//need to fix when bluealsa support dmix
+		await bluealsa_aplay_disconnect()
 		music_manager.isMusicPlaying = false
+	}
 })
 
 bluez_event.on('finished', async() => {

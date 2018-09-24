@@ -5,6 +5,7 @@ const systemBus =  dbus.systemBus()
 var service = systemBus.getService('org.bluez')
 const util = require('util');
 const exec = require("child_process").exec;
+const {spawn} = require('child_process')
 const exec_promise = util.promisify(require('child_process').exec);
 const current_path = require('path').dirname(require.main.filename)
 var EventEmitter = require('events').EventEmitter
@@ -27,14 +28,14 @@ async function bluealsa_aplay_connect() {
 	if (bluealsa_aplay_exec == undefined) {
 		if(MacAddress != '') {
 			console.log('bluealsa-aplay: ' + MacAddress);
-			bluealsa_aplay_exec = exec(`bluealsa-aplay ${MacAddress}`);
+			bluealsa_aplay_exec = exec(`bluealsa-aplay -d bluetooth ${MacAddress}`);
 		}
 	}
 	else {
 		if (bluealsa_aplay_exec.killed == true) {
 			if(MacAddress != '') {
 				console.log('bluealsa-aplay: ' + MacAddress);
-				bluealsa_aplay_exec = exec(`bluealsa-aplay ${MacAddress}`);
+				bluealsa_aplay_exec = exec(`bluealsa-aplay -d bluetooth ${MacAddress}`);
 			}
 		}
 	}
@@ -54,8 +55,7 @@ async function bluez_handler() {
 		MacAddress = address
 
 		console.log('New device connected as ' + device_info.address);
-		await exec(`aplay ${current_path}/Sounds/${VA_BLE_CONNECTED}`)
-		await bluealsa_aplay_connect()
+		exec(`aplay ${current_path}/Sounds/${VA_BLE_CONNECTED}`)
 		device = await bluetooth.getDevice(obj)
 	})
 
@@ -81,8 +81,8 @@ async function bluez_handler() {
 			notification.on('PropertiesChanged', async (signal, status) => {
 				if (status[0][0] == 'Status') {
 					var state = status[0][1][1][0]
-					console.log('update state: ' + state);
 					bluez_event.emit('state', state)
+					console.log('update state: ' + state);
 				}
 			})
 		})
@@ -105,6 +105,7 @@ async function bluetooth_discoverable(command) {
 		await adapter.Discoverable('on')
 	}
 	else {//command = 'off'
+		await bluealsa_aplay_disconnect()
 		if(device != null) {
 			await device.Disconnect()
 		}
@@ -128,7 +129,7 @@ function bluealsa_volume_control(input) {
 	return new Promise(async(resolve) => {
 		var command, vol
 		var DeviceName = await get_bluealsa_control()
-		console.log('DeviceName: ' + DeviceName);
+		//console.log('DeviceName: ' + DeviceName);
 		var index_string = input.indexOf(" ")
 		if(index_string >= 0) {
 			command = input.slice(0, index_string)
@@ -174,7 +175,8 @@ function bluealsa_volume_control(input) {
 		}
 	})
 }
-
+module.exports.bluealsa_aplay_connect = bluealsa_aplay_connect
+module.exports.bluealsa_aplay_disconnect =bluealsa_aplay_disconnect
 module.exports.device_info = device_info
 module.exports.bluez_event = bluez_event
 module.exports.bluetooth_discoverable = bluetooth_discoverable

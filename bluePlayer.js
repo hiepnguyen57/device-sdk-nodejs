@@ -1,6 +1,8 @@
 var bluetooth = require('./bluetooth').bluetooth
 var device_info = require('./bluetooth').device_info
 var bluealsa_volume_control = require('./bluetooth').bluealsa_volume_control
+var bluealsa_aplay_connect = require('./bluetooth').bluealsa_aplay_connect
+var bluealsa_aplay_disconnect = require('./bluetooth').bluealsa_aplay_disconnect
 
 const bluePlayerState = {
 	idle: 			1,
@@ -30,12 +32,14 @@ class BluePlayer {
 		return this.currState
 	}
 
-	Play() {
+	async Play() {
 		var state = this.getState()
 		if((state == bluePlayerState.paused) || (state == bluePlayerState.idle)) {
 			//console.log('objPath: ' + device_info.objPath);
 			if(device_info.objPath != '')
 			{
+				//need to fix when bluealsa support dmix
+				await bluealsa_aplay_connect()
 				this.bluetooth.setMediaControl(device_info.objPath, 'play')
 				this.setState('playing')
 			}
@@ -44,11 +48,13 @@ class BluePlayer {
 		}
 	}
 
-	Pause() {
+	async Pause() {
 		var state = this.getState()
 		if(state == bluePlayerState.playing) {
 			//console.log('objPath: ' + device_info.objPath);
 			if(device_info.objPath != '') {
+				//need to fix when bluealsa support dmix
+				await bluealsa_aplay_disconnect()
 				this.bluetooth.setMediaControl(device_info.objPath, 'pause')
 				this.setState('paused')
 			}
@@ -57,11 +63,13 @@ class BluePlayer {
 		}
 	}
 
-	Stop() {
+	async Stop() {
 		var state = this.getState()
 		if(state == bluePlayerState.playing) {
 			//console.log('objPath: ' + device_info.objPath);
 			if(device_info.objPath != '') {
+				//need to fix when bluealsa support dmix
+				await bluealsa_aplay_disconnect()
 				this.bluetooth.setMediaControl(device_info.objPath, 'stop')
 				this.setState('stopped')
 			}
