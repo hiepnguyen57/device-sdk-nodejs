@@ -175,11 +175,14 @@ function bluealsa_volume_control(input) {
 		}
 	})
 }
-module.exports.bluealsa_aplay_connect = bluealsa_aplay_connect
-module.exports.bluealsa_aplay_disconnect =bluealsa_aplay_disconnect
-module.exports.device_info = device_info
-module.exports.bluez_event = bluez_event
-module.exports.bluetooth_discoverable = bluetooth_discoverable
-module.exports.bluetooth_init = bluetooth_init
-module.exports.bluetooth = bluetooth
-module.exports.bluealsa_volume_control = bluealsa_volume_control
+
+module.exports = {
+	bluealsa_aplay_connect: 		bluealsa_aplay_connect,
+	bluealsa_aplay_disconnect: 		bluealsa_aplay_disconnect,
+	device_info: 					device_info,
+	bluez_event: 					bluez_event,
+	bluetooth_discoverable: 		bluetooth_discoverable,
+	bluetooth_init: 				bluetooth_init,
+	bluetooth: 						bluetooth,
+	bluealsa_volume_control: 		bluealsa_volume_control
+}

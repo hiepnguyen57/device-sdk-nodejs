@@ -102,14 +102,16 @@ function FadeOutVolume(object) {
 	}
 }
 
-module.exports.playerState = playerState
-module.exports.ResumeHandler = ResumeHandler
-module.exports.PauseHandler = PauseHandler
-module.exports.StopHandler = StopHandler
-module.exports.NextHandler = NextHandler
-module.exports.PrevHandler = PrevHandler
-module.exports.W_NewSongHandler = W_NewSongHandler
-module.exports.B_PlayHandler = B_PlayHandler
-module.exports.B_FinishedHandler = B_FinishedHandler
-module.exports.FadeInVolume = FadeInVolume
-module.exports.FadeOutVolume = FadeOutVolume
+module.exports = {
+	playerState: 				playerState,
+	ResumeHandler: 				ResumeHandler,
+	PauseHandler: 				PauseHandler,
+	StopHandler: 				StopHandler,
+	NextHandler: 				NextHandler,
+	PrevHandler: 				PrevHandler,
+	W_NewSongHandler: 			W_NewSongHandler,
+	B_PlayHandler: 				B_PlayHandler,
+	B_FinishedHandler: 			B_FinishedHandler,
+	FadeInVolume: 				FadeInVolume,
+	FadeOutVolume: 				FadeOutVolume
+}

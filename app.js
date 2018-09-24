@@ -194,14 +194,14 @@ function stopStream() {
 	// }
 	if(clientIsOnline === true){
 		console.log('stop stream');
+		//send end of sentence to mic-array
+		Buffer_UserEvent(WAKE_WORD_STOP)
+
 		music_manager.eventsHandler(events.FadeOutVolume)
 		recordingStream.stop();
 //        recognizeStream.end();
 		clientStream.end();
 		isRecording = false
-
-		//send end of sentence to mic-array
-		Buffer_UserEvent(WAKE_WORD_STOP)
 	}
 }
 
