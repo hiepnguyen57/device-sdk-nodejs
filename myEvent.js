@@ -15,98 +15,118 @@ const MICROPHONE_UNMUTE = 0x27
 const WIFI_CONNECTED = 0x40
 const WIFI_DISCONNECTED = 0x41
 
+const LED_DIMMING = 0x30
+const LED_CIRCLE = 0x31
+const LED_EMPTY	= 0x32
+const LED_ALLCOLORS = 0x33
+const LED_PATTERN = 0x34
+const COLOR_WHEEL = 0x35
+const LED_START	= 0x38
+const LED_STOP	= 0x39 
 var data = new Buffer([0x00, 0x00, 0x00])
 
 var ioctl = require('./ioctl')
-var EventEmitter = require('events').EventEmitter
+const readline = require('readline');
 
-var BufferEvents = new EventEmitter()
+const rl = readline.createInterface(process.stdin, process.stdout);
 
-BufferEvents.on('button', (command)=> {
+/**
+ * Input command line.
+ *
+ * @param {string} prompt.
+ * @param {callback}{string} handler.
+ */
+function promptInput(prompt, handler) {
+	rl.question(prompt, input => {
+		if (handler(input) != false) {
+			promptInput(prompt, handler);
+		}
+		else {
+			rl.close();
+		}
+	});
+}
+
+async function Buffer_LedRingEvent(command, state) {
 	switch(command) {
-		case VOLUME_UP:
-			ioctl.Transmit(CYPRESS_BUTTON, VOLUME_UP, 0x06)
-			console.log('volume up')
+		case LED_DIMMING:
+			await ioctl.Transmit(LED_RING, LED_DIMMING, state)
+			console.log('LED DIMMING ' + state);
 			break;
-		case VOLUME_DOWN:
-			ioctl.Transmit(CYPRESS_BUTTON, VOLUME_DOWN, 0x03)
-			console.log('volume down')
+		case LED_CIRCLE:
+			await ioctl.Transmit(LED_RING, LED_CIRCLE, state)
+			console.log('LED CIRCLE ' + state);
 			break;
-		case VOLUME_MUTE:
-			ioctl.mute()
-			ioctl.Transmit(CYPRESS_BUTTON, VOLUME_MUTE)
-			console.log('volume mute')
+		case LED_EMPTY:
+			await ioctl.Transmit(LED_RING, LED_EMPTY, state)
+			console.log('LED EMPTY ' + state);
 			break;
-		case VOLUME_UNMUTE:
-			ioctl.unmute()
-			ioctl.Transmit(CYPRESS_BUTTON, VOLUME_UNMUTE, 0x02)
-			console.log('volume unmute')
+		case LED_ALLCOLORS:
+			await ioctl.Transmit(LED_RING, LED_ALLCOLORS, state)
+			console.log('LED ALLCOLORS ' + state);
 			break;
-		case MICROPHONE_MUTE:
-			ioctl.Transmit(CYPRESS_BUTTON, MICROPHONE_MUTE)
-			console.log('microphone mute')
+		case LED_PATTERN:
+			await ioctl.Transmit(LED_RING, LED_PATTERN, state)
+			console.log('LED PATTERN ' + state);
 			break;
-		case MICROPHONE_UNMUTE:
-			ioctl.Transmit(CYPRESS_BUTTON, MICROPHONE_UNMUTE)
-			console.log('microphone unmute')
+		case COLOR_WHEEL:
+			await ioctl.Transmit(LED_RING, COLOR_WHEEL, state)
+			console.log('LED COLOR WHEEL ' + state);
 			break;
-		case BT_WAKEWORD_START:
-			//recording audio
-			console.log('recording')
-			break;
-	}
-})
-
-BufferEvents.on('led ring', (command) => {
-	switch(command) {
-
-	}
-})
-
-BufferEvents.on('user event', (command) => {
-	switch(command)
-	{
-		case WIFI_CONNECTED:
-			ioctl.Transmit(USER_EVENT, WIFI_CONNECTED)
-			console.log('wifi was connected')
-			break;
-		case WIFI_DISCONNECTED:
-			ioctl.Transmit(USER_EVENT, WIFI_DISCONNECTED)
-			console.log('wifi was disconnected')
-			break;
-		case WAKE_WORD_STOP:
-			ioctl.Transmit(USER_EVENT, WAKE_WORD_STOP)
-			console.log('wakeword end')
-		case MICROPHONE_MUTE:
-			ioctl.Transmit(USER_EVENT, MICROPHONE_MUTE)
-			console.log('microphone mute')
-			break;
-		case MICROPHONE_UNMUTE:
-			ioctl.Transmit(USER_EVENT, MICROPHONE_UNMUTE)
-			console.log('microphone unmute')
-			break;
-	}
-})
-
-function Controller(target, command) {
-	switch(target) {
-		case LED_RING:
-			BufferEvents.emit('led ring', command)
-			break;
-		case CYPRESS_BUTTON:
-			BufferEvents.emit('button', command)
-			break;
-		case USER_EVENT:
-			BufferEvents.emit('user event', command)
 	}
 }
 
+async function main() {
+	ioctl.reset()
+	promptInput('Command > ', input => {
+		var command, arg, state;
+		var index_str = input.indexOf(" ");
 
-BufferEvents.on('i2c event', (target, command) => {
-	setImmediate(() => {
-		Controller(target, command)
+		if (index_str >= 0) {
+			command = input.slice(0, index_str);
+			arg = input.slice(index_str + 1, input.length);
+			
+			if(arg == 'start') {
+				state = LED_START
+			}
+			else if(arg == "stop") {
+				state = LED_STOP
+			}
+			console.log('state: ' + state);
+		}
+		else {
+			command = input;
+		}
 
+		switch(command) {
+			case 'dimming':
+				Buffer_LedRingEvent(LED_DIMMING, state)
+				break;
+			case 'circle':
+				Buffer_LedRingEvent(LED_CIRCLE, state)
+				break;
+			case 'empty':
+				Buffer_LedRingEvent(LED_EMPTY, state)
+				break;
+			case 'allcolors':
+				Buffer_LedRingEvent(LED_ALLCOLORS, state)
+				break;
+			case 'pattern':
+				Buffer_LedRingEvent(LED_PATTERN, state)
+				break;
+			case 'colorwheel':
+				Buffer_LedRingEvent(COLOR_WHEEL, state)
+				break;
+		}
 	})
-})
+}
 
-module.exports = BufferEvents
+main()
+
+
+
+
+
+
+
+
