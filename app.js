@@ -73,6 +73,16 @@ const RECORD_ERROR = 0x42
 const BLE_ON = 0x43
 const BLE_OFF = 0x44
 
+const LED_DIMMING = 0x30
+const LED_CIRCLE = 0x31
+const LED_EMPTY	= 0x32
+const LED_ALLCOLORS = 0x33
+const LED_PATTERN = 0x34
+const COLOR_WHEEL = 0x35
+const CLEAN_ALL = 0x36
+const LED_START	= 0x38
+const LED_STOP	= 0x39 
+
 var RxBuff = new Buffer([0x00, 0x00])
 
 const i2c1 = i2c.openSync(1)
@@ -535,11 +545,17 @@ function event_watcher() {
  * @param {} ();
  */
 async function main() {
-	ioctl.reset()//reset Micarray for running
+	exec(`/home/root/line_amp.sh`).on('exit', async(code, signal) => {
+		setTimeout(async() => {
+			await amixer.volume_control('setvolume 50')
+		}, 1000);
+	})
+
+	exec(`aplay ${current_path}/Sounds/${'boot_sequence_intro_1.wav'}`)
+	reset_micarray()
+	exec(`echo 'nameserver 8.8.8.8' > /etc/resolv.conf`)
 	await bluetooth_init()
 	event_watcher()
-
-	await amixer.volume_control('setvolume 40')
 
 	promptInput('Command > ', input => {
 		var command, arg;
@@ -643,10 +659,45 @@ async function Buffer_ButtonEvent(command) {
 	}
 }
 
-async function Buffer_LedRingEvent(command) {
-
+function reset_micarray() {
+	ioctl.reset()
+	setTimeout(async() => {
+		await ioctl.Transmit(LED_RING, CLEAN_ALL);
+	}, 1000);
 }
 
+async function Buffer_LedRingEvent(command, state) {
+	switch(command) {
+		case LED_DIMMING:
+			await ioctl.Transmit(LED_RING, LED_DIMMING, state)
+			console.log('LED DIMMING ' + state);
+			break;
+		case LED_CIRCLE:
+			await ioctl.Transmit(LED_RING, LED_CIRCLE, state)
+			console.log('LED CIRCLE ' + state);
+			break;
+		case LED_EMPTY:
+			await ioctl.Transmit(LED_RING, LED_EMPTY, state)
+			console.log('LED EMPTY ' + state);
+			break;
+		case LED_ALLCOLORS:
+			await ioctl.Transmit(LED_RING, LED_ALLCOLORS, state)
+			console.log('LED ALLCOLORS ' + state);
+			break;
+		case LED_PATTERN:
+			await ioctl.Transmit(LED_RING, LED_PATTERN, state)
+			console.log('LED PATTERN ' + state);
+			break;
+		case COLOR_WHEEL:
+			await ioctl.Transmit(LED_RING, COLOR_WHEEL, state)
+			console.log('LED COLOR WHEEL ' + state);
+			break;
+		case CLEAN_ALL:
+			await ioctl.Transmit(LED_RING, CLEAN_ALL);
+			console.log('Led Ring clear effect');
+			break;
+	}
+}
 
 async function Buffer_UserEvent(command) {
 	switch(command) {
@@ -692,9 +743,9 @@ async function Buffer_UserEvent(command) {
 
 async function BufferController(target, command) {
 	switch(target) {
-		case LED_RING:
-			await Buffer_LedRingEvent(command)
-			break;
+		// case LED_RING:
+		// 	await Buffer_LedRingEvent(command)
+		// 	break;
 		case CYPRESS_BUTTON:
 			await Buffer_ButtonEvent(command)
 			break;

@@ -21,6 +21,7 @@ const LED_EMPTY	= 0x32
 const LED_ALLCOLORS = 0x33
 const LED_PATTERN = 0x34
 const COLOR_WHEEL = 0x35
+const CLEAN_ALL = 0x36
 const LED_START	= 0x38
 const LED_STOP	= 0x39 
 var data = new Buffer([0x00, 0x00, 0x00])
@@ -73,11 +74,17 @@ async function Buffer_LedRingEvent(command, state) {
 			await ioctl.Transmit(LED_RING, COLOR_WHEEL, state)
 			console.log('LED COLOR WHEEL ' + state);
 			break;
+		case CLEAN_ALL:
+			ioctl.reset()
+			setTimeout(async() => {
+				await ioctl.Transmit(LED_RING, CLEAN_ALL);
+			}, 1000);
+			console.log('Led Ring clear effect');
+			break;
 	}
 }
 
 async function main() {
-	ioctl.reset()
 	promptInput('Command > ', input => {
 		var command, arg, state;
 		var index_str = input.indexOf(" ");
@@ -116,6 +123,9 @@ async function main() {
 				break;
 			case 'colorwheel':
 				Buffer_LedRingEvent(COLOR_WHEEL, state)
+				break;
+			case 'cleanall':
+				Buffer_LedRingEvent(CLEAN_ALL)
 				break;
 		}
 	})

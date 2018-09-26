@@ -1,0 +1,13 @@
+[Unit]
+Description=Music Player service
+After=network.target bb-wl18xx-bluetooth.service
+
+[Service]
+Type=simple
+#ExecStart=/bin/bash /home/root/start_music_player.sh
+ExecStart=/usr/bin/node /home/root/music-player/app.js
+Restart=on-failure
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target

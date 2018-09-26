@@ -1,0 +1,12 @@
+[Unit]
+Description=Boot sequence service
+#After=sysinit.target
+
+[Service]
+Type=simple
+ExecStart=/bin/bash /home/root/Init_For_Starting.sh
+#Restart=on-failure
+#RestartSec=1
+
+[Install]
+WantedBy=multi-user.target
