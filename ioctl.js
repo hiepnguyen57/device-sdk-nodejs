@@ -8,7 +8,7 @@ const I2C_ADDRESS = 0x68;
 const BUFF_SIZE = 0x03
 const CODEC_ADDR = 0x18
 
-var data = new Buffer([0x00, 0x00, 0x00]);
+var data = new Buffer([0x00, 0x00, 0x00, 0x00]);
 
 const i2c1 = i2c.openSync(1)
 const i2c1_forceAccess = i2c.openSync(1, {forceAccess: true})
@@ -22,7 +22,7 @@ function pulse() {
 
 function reset() {
 	execFile('/bin/bash', ['/home/root/reset.sh'], function(err, stdout, stderr) {
-		if (err !== null) {
+		if (err) {
 			console.log('exec error:', err);
 		}
 	})
@@ -81,6 +81,22 @@ exports.unmute = function() {
 		if (err) {
 			reset()
 			throw err;
+		}
+	})
+}
+
+exports.setRGB = function(object, red, green, blue) {
+	//create pulse before transmission
+	pulse()
+
+	data[0] = object
+	data[1] = red
+	data[2] = green
+	data[3] = blue
+	i2c1.i2cWriteSync(I2C_ADDRESS, 0x04, data, function(err) {
+		if (err) {
+			reset()
+			throw err
 		}
 	})
 }

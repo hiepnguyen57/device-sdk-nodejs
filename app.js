@@ -156,7 +156,7 @@ async function startStream(eventJSON) {
 			sampleRate: 16000,
 			verbose: false,
 			recordProgram: 'arecord', // Try also "rec" or "sox"
-			device: 'plughw:1',
+			device: 'plughw:0',
 		})
 		// remove comment if you want to save streaming file
 		// .on('data', function(chunk) {
@@ -364,7 +364,7 @@ client.on("stream", async (serverStream, directive) => {
 			musicResume = true
 		}
 
-		//ioctl.reset()
+		reset_micarray()
 		console.log('xin loi eo ghi am duoc!!!');
 		exec(`aplay ${current_path}/Sounds/${'donthearanything.wav'}`).on('exit', function(code, signal) {
 			if(musicResume == true) {
@@ -551,7 +551,9 @@ async function main() {
 		}, 1000);
 	})
 
-	exec(`aplay ${current_path}/Sounds/${'boot_sequence_intro_1.wav'}`)
+	exec(`aplay ${current_path}/Sounds/${'boot_sequence_intro_1.wav'}`).on('exit', async() => {
+		exec(`aplay ${current_path}/Sounds/${'hello_VA.wav'}`)
+	})
 	reset_micarray()
 	exec(`echo 'nameserver 8.8.8.8' > /etc/resolv.conf`)
 	await bluetooth_init()

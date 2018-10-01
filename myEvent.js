@@ -22,6 +22,7 @@ const LED_ALLCOLORS = 0x33
 const LED_PATTERN = 0x34
 const COLOR_WHEEL = 0x35
 const CLEAN_ALL = 0x36
+const LED_RGB = 0x37
 const LED_START	= 0x38
 const LED_STOP	= 0x39 
 var data = new Buffer([0x00, 0x00, 0x00])
@@ -46,6 +47,11 @@ function promptInput(prompt, handler) {
 			rl.close();
 		}
 	});
+}
+
+async function LedRGB(red, green, blue) {
+	await ioctl.setRGB(LED_RGB, red, green, blue);
+	console.log('set color as red: ' + red + ' green: ' + green + ' blue: ' + blue);
 }
 
 async function Buffer_LedRingEvent(command, state) {
@@ -127,6 +133,14 @@ async function main() {
 			case 'cleanall':
 				Buffer_LedRingEvent(CLEAN_ALL)
 				break;
+			case 'setrgb':
+				var words = input.split(' ');
+				var red = parseInt(words[1]);
+				var green = parseInt(words[2]);
+				var blue = parseInt(words[3]);
+
+				LedRGB(red, green, blue)
+ 				break;
 		}
 	})
 }
