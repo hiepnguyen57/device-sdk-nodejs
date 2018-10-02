@@ -25,6 +25,7 @@ const CLEAN_ALL = 0x36
 const LED_RGB = 0x37
 const LED_START	= 0x38
 const LED_STOP	= 0x39 
+const USB_AUDIO = 0x45
 var data = new Buffer([0x00, 0x00, 0x00])
 
 var ioctl = require('./ioctl')
@@ -87,6 +88,10 @@ async function Buffer_LedRingEvent(command, state) {
 			}, 1000);
 			console.log('Led Ring clear effect');
 			break;
+		case USB_AUDIO:
+			await ioctl.Transmit(USER_EVENT, USB_AUDIO);
+			console.log('enable usb audio');
+			break;
 	}
 }
 
@@ -141,6 +146,9 @@ async function main() {
 
 				LedRGB(red, green, blue)
  				break;
+ 			case 'usbaudio':
+				Buffer_LedRingEvent(USB_AUDIO)
+				break;
 		}
 	})
 }
