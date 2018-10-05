@@ -9,9 +9,7 @@ const BinaryClient = require('binaryjs').BinaryClient;
 const eventGenerator = require('./event');
 const lame = require('lame');
 const Speaker = require('speaker');
-const wav = require('wav')
 const event = require('events');
-const delay = require('delay');
 const recordingStream = require('node-record-lpcm16');
 /* Imports the Google Cloud client library */
 const speech = require('@google-cloud/speech');
@@ -40,7 +38,8 @@ var audioOptions = {
 	channels: 2,
 	bitDepth: 16,
 	sampleRate: 44100,
- 	mode: lame.STEREO
+ 	mode: lame.STEREO,
+ 	//device: 'hw:0,0'
 };
 
 /* Creates a client */
@@ -50,6 +49,7 @@ const exec = require("child_process").exec;
 const i2c = require('i2c-bus')
 const gpio = require('onoff').Gpio
 var ioctl = require('./ioctl')
+const Audio = require('audio')
 
 // Export gpio48 as an interrupt generating input with a debounceTimeout of 10
 const gpio48 = new gpio(48, 'in', 'rising', {debounceTimeout: 10})
@@ -74,6 +74,7 @@ const RECORD_ERROR = 0x42
 const BLE_ON = 0x43
 const BLE_OFF = 0x44
 const USB_AUDIO = 0x45
+const CLIENT_ERROR = 0x46
 
 const LED_DIMMING = 0x30
 const LED_CIRCLE = 0x31
@@ -93,9 +94,9 @@ var fifo = require('fifo')()
 var audio_data = null
 var file_record = null
 //var file_stream = null
-var clientIsOnline = false
+var clientIsOnline
 
-var client = BinaryClient(util.format("wss://%s:8080", config.IP_SERVER));
+var client = new BinaryClient('wss://chatbot.iviet.com:4433');
 var clientStream;
 var recognizeStream;
 var isRecording = false;
@@ -118,7 +119,7 @@ async function startStream(eventJSON) {
 	//fading volume
 	//music_manager.eventsHandler(events.FadeInVolume)
 
-	file_record = fs.createWriteStream('recorded.wav', { encoding: 'binary' })
+	//file_record = fs.createWriteStream('recorded.wav', { encoding: 'binary' })
 	//file_stream = fs.createWriteStream('streaming.wav', { encoding: 'binary'});
 
 	if(clientIsOnline === true){
@@ -130,35 +131,36 @@ async function startStream(eventJSON) {
 		return
 	}
 
-	// const request = {
-	//     config: {
-	//         encoding: mic_options.encoding,
-	//         sampleRateHertz: mic_options.sampleRateHertz,
-	//         languageCode: mic_options.languageCode,
-	//     },
-	//     interimResults: true, /* If you want interim results, set this to true */
-	//     singleUtterance: false
-	// };
+	const request = {
+	    config: {
+	        encoding: mic_options.encoding,
+	        sampleRateHertz: mic_options.sampleRateHertz,
+	        languageCode: mic_options.languageCode,
+	    },
+	    interimResults: true, /* If you want interim results, set this to true */
+	    singleUtterance: false
+	};
 
 	/* Create a recognize stream */
-	// recognizeStream = speech_client
-	//     .streamingRecognize(request)
-	//     .on('error', (err) => {
-	//         console.log('google speech ' + err);
-	//     })
-	//     .on('data', (data) => {
-	//     })
-	//     .on('end', () => {
-	//         console.log('google speech ended');
-	//         //emit signal StopStream here
-	//     })
+	recognizeStream = speech_client
+	    .streamingRecognize(request)
+	    .on('error', (err) => {
+	        console.log('google speech: ' + err);
+	    })
+	    .on('data', (data) => {
+	    })
+	    .on('end', () => {
+	        console.log('end google speech');
+	        stopStream();
+	    })
 
 	var streamToServer = recordingStream
 		.start({
-			sampleRate: 16000,
-			verbose: false,
-			recordProgram: 'arecord', // Try also "rec" or "sox"
-			device: 'plughw:1',
+			sampleRate: 	16000,
+			channels: 		2,
+			verbose: 		false,
+			recordProgram: 	'arecord', // Try also "rec" or "sox"
+			device: 		'plughw:1',
 		})
 		// remove comment if you want to save streaming file
 		// .on('data', function(chunk) {
@@ -179,18 +181,18 @@ async function startStream(eventJSON) {
 			console.log(err);
 		})
 		.on('end', () => {
-			console.log('ended recording');
+			console.log('end recording');
 		})
 
 	streamToServer.pipe(clientStream);
-	streamToServer.pipe(file_record);// remove comment if you want to save recording file
-//    streamToServer.pipe(recognizeStream);
+	//streamToServer.pipe(file_record);// remove comment if you want to save recording file
+    streamToServer.pipe(recognizeStream);
 	console.log("Speak now!!!");
 
 	setTimeout(function () {
-		console.log('stop recording');
+		console.log('Timeout recording!!!!');
 		stopStream();
-	}, 3000)
+	}, 5000)
 }
 
 /**
@@ -211,14 +213,14 @@ function stopStream() {
 
 		music_manager.eventsHandler(events.FadeOutVolume)
 		recordingStream.stop();
-//        recognizeStream.end();
+        recognizeStream.end();
 		clientStream.end();
 		isRecording = false
 	}
 }
 
 client.on("open", () => {
-	console.log('client ok');
+	console.log('client has opened');
 	clientIsOnline = true
 })
 
@@ -227,159 +229,32 @@ client.on("pong", (data, flags) => {
 })
 
 client.on("error", (error) => {
+	console.log('client got an error');
 	clientIsOnline = false
 });
 
-
-// /**
-//  * Play STT streaming
-//  *
-//  * @param {object} serverStream : streaming audio from server
-//  * @param {object} options.
-//  */
-// function playTTSStream(serverStream, options) {
-// 	const playevent = new event();
-// 	var speaker = new Speaker(audioOptions);
-// 	console.log("TTS Streaming: Speaker created")
-
-// 	console.log('Created Speaker');
-// 	//var pcm = fs.createWriteStream("audio.pcm");
-// 	//var audio_data = new Buffer(0);
-// 	var reader = new wav.Reader()
-// 	reader.pipe(speaker)
-
-// 	//remove below if you don't want to save audio file from server
-// 	// serverStream.on('data', function(chunk) {
-// 	//         audio_data = Buffer.concat([audio_data, chunk]);
-// 	//     })
-// 	// serverStream.on('end', function() {
-// 	//     console.log('file size ' + audio_data.length);
-// 	//     if(audio_data.length > 0){
-// 	//         pcm.write(audio_data)
-// 	//     }
-// 	// })
-
-// 	serverStream.pipe(reader).on('end', () => {
-// 		setTimeout(() => {
-// 			playevent.emit('end');
-// 		}, 300);
-// 	})
-
-// 	return playevent;
-// }
-
-
 async function webPlayNewSong(serverStream, url)
 {
-	var decoder = lame.Decoder();
-	var speaker = new Speaker(audioOptions);
-	decoder.pipe(speaker);
-
-	serverStream.pipe(decoder).on('end', () => {
-		setTimeout(() => {
-		}, 300);
+	serverStream.on('data', function(url) {
+		var intro_url = 'http://chatbot.iviet.com' + url
+		console.log(intro_url);
+		exec(`./playurl ${intro_url}`)
 	})
-
 	music_manager.url = url
 	music_manager.eventsHandler(events.W_NewSong)
 }
-// /**
-//  * Play audio file streaming
-//  *
-//  * @param {object} serverStream : streaming audio from server
-//  * @param {object} options.
-//  */
-// function playFileStream(serverStream, options) {
-// 	const playevent = new event();
-// 	var decoder = lame.Decoder();
-// 	options = options || {};
-// 	var speaker = new Speaker(audioOptions);
-// 	console.log("File Streaming: Speaker created")
 
-// 	function start() {
-// 		decoder.pipe(speaker)
-// 		serverStream.pipe(decoder).on('end', () => {
-// 			setTimeout(() => {
-// 				playevent.emit('end');
-// 			}, 300);
-// 		})
-// 	}
-
-// 	start();
-// 	return playevent;
-// }
-
-/**
- * Play Audio streaming.
- *
- * @param {object} serverStream : streaming audio from server.
- * @param {object} directive : use to switch audio source.
- * @param {object} options.
- */
-
-// function playStream(input, directive, options) {
-// 	return new Promise((resolve, reject) => {
-// 		var event;
-// 		var musicResume = false
-// 		if(music_manager.isMusicPlaying == true) {
-// 			music_manager.eventsHandler(events.Pause)
-// 			musicResume = true
-// 		}
-
-// 		if (directive.payload.format == "file") {
-// 			event = playFileStream(input);
-// 		}
-// 		else if (directive.payload.format == "polly") {
-// 			event = playTTSStream(input);
-// 		}
-
-// 		else if (directive.payload.format == "olli_ssml") {
-// 			event = playTTSStream(input)
-// 		}
-
-// 		event.on('end', async() => {
-// 			if(musicResume == true) {
-// 				music_manager.eventsHandler(events.Resume)
-// 			}
-// 		})
-// 		resolve(event);
-// 	})
-// }
-
-function playStream(input) {
+function playStream(serverStream) {
 	console.log('play stream event');
-	// var audio_data = new Buffer(0);
-	// var decoder = lame.Decoder();
 	// var speaker = new Speaker(audioOptions);
- // 	decoder.pipe(speaker);
+	// var decoder = lame.Decoder()
+	// decoder.pipe(speaker)
 
- 	//audio_data = fs.createWriteStream('audio_data.wav', { encoding: 'binary'});
-	input.on('data', function(url) {
-		console.log('data on stream');
-		if(typeof url !== 'string') {
-			console.log('invalid data for url stream:' + url);
-			return
-		}
-
-		//audio_data = Buffer.concat([audio_data, chunk]);
-		// fifo.push(url);
-		// var cache_length = fifo.length;
-		// for(var i = 0; i < cache_length; i++){
-		//     var tmp = fifo.shift();
-		//     if(tmp != null){
-		//         console.log(tmp.length)
-		//         if(audio_data != null){
-		//             audio_data.write(tmp);
-		//         }
-		//     }
-		// }
-		// fifo.clear()
+ 	//serverStream.pipe(file_sorry);
+	serverStream.on('data', function(url) {
+		console.log('url ' + url);
+		//serverStream.pipe(decoder);
  	})
-	// serverStream.pipe(speaker).on('end', () => {
- // 		if(musicResume == true) {
- // 			music_manager.eventsHandler(events.Resume)
- // 		}
-	// })
 }
 /**
  * Receiving directive and streaming source from server to this client after streamed audio recording to server.
@@ -446,7 +321,6 @@ client.on("stream", async (serverStream, directive) => {
 	}
 
 	if (directive.header.namespace == "Alerts" && directive.header.name == "SetAlert") {
-			//playStream(serverStream, directive);
 			playStream(serverStream)
 	}
 
@@ -455,14 +329,12 @@ client.on("stream", async (serverStream, directive) => {
 	 */
 	if (directive.header.namespace == "Speaker") {
 		if (directive.header.name == "AdjustVolume") {
-			setTimeout(() => {
-				if (directive.payload.volume >= 0) {
-					Buffer_ButtonEvent(VOLUME_UP)
-				}
-				else {
-					Buffer_ButtonEvent(VOLUME_DOWN)
-				}
-			}, 100);
+			if (directive.payload.volume >= 0) {
+				Buffer_ButtonEvent(VOLUME_UP)
+			}
+			else {
+				Buffer_ButtonEvent(VOLUME_DOWN)
+			}
 		}
 
 		/* Volume Mute. */
@@ -499,10 +371,12 @@ client.on("stream", async (serverStream, directive) => {
 			await bluetooth_discoverable('off')
 			Buffer_UserEvent(BLE_OFF)
 		}
+		setTimeout(() => {
+			if(musicResume == true) {
+				music_manager.eventsHandler(events.Resume)
+			}
+		}, 500);
 
-		if(musicResume == true) {
-			music_manager.eventsHandler(events.Resume)
-		}
 		return
 	}
 
@@ -510,7 +384,6 @@ client.on("stream", async (serverStream, directive) => {
 	if ((directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "ExpectSpeech")
 		|| (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Speak")) {
 			console.log("SpeechSynthesizer only Playing Stream below")
-			//const playStreamevent = await playStream(serverStream, directive);
 			playStream(serverStream);
 		return
 	}
@@ -557,26 +430,49 @@ function event_watcher() {
  * @param {} ();
  */
 async function main() {
-	exec(`/home/root/line_amp.sh`).on('exit', async(code, signal) => {
+	exec(`/home/root/line_amp.sh`).on('exit', async() => {
 		setTimeout(async() => {
 			await amixer.volume_control('setvolume 40')
 		}, 1000);
 	})
 
-	// exec(`aplay ${current_path}/Sounds/${'boot_sequence_intro_1.wav'}`).on('exit', async() => {
-	// 	exec(`aplay ${current_path}/Sounds/${'hello_VA.wav'}`)
-	// })
 	reset_micarray()
-	exec(`echo 'nameserver 8.8.8.8' > /etc/resolv.conf`)
-	await bluetooth_init()
-	event_watcher()
-}
 
+	require('dns').resolve('www.google.com', async(err) => {
+		if(err) {
+			console.log('No connection');
+			//play audio notification here
+			setTimeout(() => {
+				exec(`aplay ${current_path}/Sounds/${'remind_wifi_connection.wav'}`).on('exit', async() => {
+					Buffer_UserEvent(WIFI_DISCONNECTED);
+				})
+			}, 3000);
+		}
+		else {
+			console.log('Internet connected');
+			// exec(`aplay ${current_path}/Sounds/${'boot_sequence_intro_1.wav'}`).on('exit', async() => {
+			// 	exec(`aplay ${current_path}/Sounds/${'hello_VA.wav'}`)
+			// })
+			exec(`echo 'nameserver 8.8.8.8' > /etc/resolv.conf`)
+			await bluetooth_init()
+			event_watcher()
+
+			setTimeout(() => {
+				//check client connection
+				if(clientIsOnline === false)
+					Buffer_UserEvent(CLIENT_ERROR)
+			}, 3000);
+		}
+	})
+
+}
+var count_vol = 0
 async function Buffer_ButtonEvent(command) {
 	var current_vol
 
 	switch(command) {
 		case VOLUME_UP:
+			count_vol++
 			await amixer.volume_control('volumeup')
 			current_vol = await amixer.volume_control('getvolume')
 			await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_UP, current_vol)
@@ -586,7 +482,7 @@ async function Buffer_ButtonEvent(command) {
 			await amixer.volume_control('volumedown')
 			current_vol = await amixer.volume_control('getvolume')
 			if(current_vol < 30) {
-				await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_MUTE)
+				await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_MUTE, current_vol)
 			}
 			else{
 				await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_DOWN, current_vol)
@@ -717,6 +613,10 @@ async function Buffer_UserEvent(command) {
 		case USB_AUDIO:
 			await ioctl.Transmit(USER_EVENT, USB_AUDIO)
 			console.log('enable usb mic array');
+			break;
+		case CLIENT_ERROR:
+			await ioctl.Transmit(USER_EVENT, CLIENT_ERROR)
+			console.log('client error');
 			break;
 	}
 }

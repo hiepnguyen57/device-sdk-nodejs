@@ -149,6 +149,17 @@ async function main() {
  			case 'usbaudio':
 				Buffer_LedRingEvent(USB_AUDIO)
 				break;
+			case 'buffer':
+				var words = input.split(' ');
+				var target = parseInt(words[1]);
+				var command = parseInt(words[2]);
+				var value = parseInt(words[3]);
+
+				ioctl.Transmit(target, command, value)
+				console.log('target: ' + target);
+				console.log('command: ' + command);
+				console.log('value: ' + value);
+				break
 		}
 	})
 }

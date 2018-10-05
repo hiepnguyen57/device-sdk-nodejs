@@ -8,17 +8,15 @@ import sys
 import dbus
 import dbus.service
 import dbus.mainloop.glib
-#from optparse import OptionParser
+from optparse import OptionParser
 
 BUS_NAME = 'org.bluez'
 AGENT_INTERFACE = 'org.bluez.Agent1'
+AGENT_PATH = "/temp/agent"
 
 bus = None
 device_obj = None
 dev_path = None
-
-capability = "NoInputNoOutput"
-path = '/tmp/agent'
 
 def ask(prompt):
 	try:
@@ -134,20 +132,23 @@ if __name__ == '__main__':
 
 	bus = dbus.SystemBus()
 
-	# parser = OptionParser()
-	# parser.add_option("-i", "--adapter", action="store",
-	# 				type="string",
-	# 				dest="adapter_pattern",
-	# 				default=None)
-	# parser.add_option("-c", "--capability", action="store",
-	# 				type="string", dest="capability")
-	# parser.add_option("-t", "--timeout", action="store",
-	# 				type="int", dest="timeout",
-	# 				default=60000)
-	# (options, args) = parser.parse_args()
-	# if options.capability:
-	# 	capability  = options.capability
+	capability = "NoInputNoOutput"
 
+	parser = OptionParser()
+	parser.add_option("-i", "--adapter", action="store",
+					type="string",
+					dest="adapter_pattern",
+					default=None)
+	parser.add_option("-c", "--capability", action="store",
+					type="string", dest="capability")
+	parser.add_option("-t", "--timeout", action="store",
+					type="int", dest="timeout",
+					default=60000)
+	(options, args) = parser.parse_args()
+	if options.capability:
+		capability  = options.capability
+
+	path = "/temp/agent"
 	agent = Agent(bus, path)
 
 	mainloop = GObject.MainLoop()
@@ -159,3 +160,6 @@ if __name__ == '__main__':
 	print("Agent registered")
 	manager.RequestDefaultAgent(path)
 	mainloop.run()
+
+	#adapter.UnregisterAgent(path)
+	#print("Agent unregistered")
