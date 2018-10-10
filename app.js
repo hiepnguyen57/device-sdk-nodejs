@@ -11,6 +11,8 @@ const lame = require('lame');
 const Speaker = require('speaker');
 const event = require('events');
 const recordingStream = require('node-record-lpcm16');
+const moment = require('moment')
+
 /* Imports the Google Cloud client library */
 const speech = require('@google-cloud/speech');
 const current_path = require('path').dirname(require.main.filename);
@@ -38,8 +40,7 @@ var audioOptions = {
 	channels: 2,
 	bitDepth: 16,
 	sampleRate: 44100,
- 	mode: lame.STEREO,
- 	//device: 'hw:0,0'
+	mode: lame.STEREO,
 };
 
 /* Creates a client */
@@ -49,7 +50,6 @@ const exec = require("child_process").exec;
 const i2c = require('i2c-bus')
 const gpio = require('onoff').Gpio
 var ioctl = require('./ioctl')
-const Audio = require('audio')
 
 // Export gpio48 as an interrupt generating input with a debounceTimeout of 10
 const gpio48 = new gpio(48, 'in', 'rising', {debounceTimeout: 10})
@@ -91,11 +91,9 @@ var RxBuff = new Buffer([0x00, 0x00])
 const i2c1 = i2c.openSync(1)
 var fs = require('fs')
 var fifo = require('fifo')()
-var audio_data = null
-var file_record = null
-//var file_stream = null
 var clientIsOnline
-
+var file_name = null
+var file = null;
 var client = new BinaryClient('wss://chatbot.iviet.com:4433');
 var clientStream;
 var recognizeStream;
@@ -116,11 +114,8 @@ var bluealsa_aplay_disconnect = require('./bluetooth').bluealsa_aplay_disconnect
  * @param {object} eventJSON.
  */
 async function startStream(eventJSON) {
-	//fading volume
-	//music_manager.eventsHandler(events.FadeInVolume)
-
-	//file_record = fs.createWriteStream('recorded.wav', { encoding: 'binary' })
-	//file_stream = fs.createWriteStream('streaming.wav', { encoding: 'binary'});
+	file_name = moment().format("YYYYMMDDHHmmss") + '.wav'
+	file = fs.createWriteStream(file_name, { encoding: 'binary' })
 
 	if(clientIsOnline === true){
 		console.log('online')
@@ -131,52 +126,37 @@ async function startStream(eventJSON) {
 		return
 	}
 
-	const request = {
-	    config: {
-	        encoding: mic_options.encoding,
-	        sampleRateHertz: mic_options.sampleRateHertz,
-	        languageCode: mic_options.languageCode,
-	    },
-	    interimResults: true, /* If you want interim results, set this to true */
-	    singleUtterance: false
-	};
+	// const request = {
+	// 	config: {
+	// 		encoding: mic_options.encoding,
+	// 		sampleRateHertz: mic_options.sampleRateHertz,
+	// 		languageCode: mic_options.languageCode,
+	// 	},
+	// 	interimResults: true, /* If you want interim results, set this to true */
+	// 	singleUtterance: false
+	// };
 
-	/* Create a recognize stream */
-	recognizeStream = speech_client
-	    .streamingRecognize(request)
-	    .on('error', (err) => {
-	        console.log('google speech: ' + err);
-	    })
-	    .on('data', (data) => {
-	    })
-	    .on('end', () => {
-	        console.log('end google speech');
-	        stopStream();
-	    })
+	// /* Create a recognize stream */
+	// recognizeStream = speech_client
+	// 	.streamingRecognize(request)
+	// 	.on('error', (err) => {
+	// 		console.log('google speech: ' + err);
+	// 	})
+	// 	.on('data', (data) => {
+	// 	})
+	// 	.on('end', () => {
+	// 		console.log('end google speech');
+	// 		stopStream();
+	// 	})
 
 	var streamToServer = recordingStream
 		.start({
 			sampleRate: 	16000,
-			channels: 		2,
-			verbose: 		false,
+			channels: 		1,
+			verbose: 		true,
 			recordProgram: 	'arecord', // Try also "rec" or "sox"
-			device: 		'plughw:1',
+			device: 		'plughw:1,0',
 		})
-		// remove comment if you want to save streaming file
-		// .on('data', function(chunk) {
-		//     fifo.push(chunk);
-		//     var cache_length = fifo.length;
-		//     for(var i = 0; i < cache_length; i++){
-		//         var tmp = fifo.shift();
-		//         if(tmp != null){
-		//             console.log(tmp.length)
-		//             if(file_stream != null){
-		//                 file_stream.write(tmp);
-		//             }
-		//         }
-		//     }
-		//     fifo.clear()
-		// })
 		.on('error', (err) => {
 			console.log(err);
 		})
@@ -185,14 +165,14 @@ async function startStream(eventJSON) {
 		})
 
 	streamToServer.pipe(clientStream);
-	//streamToServer.pipe(file_record);// remove comment if you want to save recording file
-    streamToServer.pipe(recognizeStream);
+	streamToServer.pipe(file);// remove comment if you want to save recording file
+	//streamToServer.pipe(recognizeStream);
 	console.log("Speak now!!!");
 
 	setTimeout(function () {
 		console.log('Timeout recording!!!!');
 		stopStream();
-	}, 5000)
+	}, 4000)
 }
 
 /**
@@ -201,11 +181,6 @@ async function startStream(eventJSON) {
  * @param {}
  */
 function stopStream() {
-	// if(file_stream != null){
-	// 	file_stream.end()
-	// 	file_stream = null
-	// 	file_record = null
-	// }
 	if(clientIsOnline === true){
 		console.log('stop stream');
 		//send end of sentence to mic-array
@@ -213,7 +188,8 @@ function stopStream() {
 
 		music_manager.eventsHandler(events.FadeOutVolume)
 		recordingStream.stop();
-        recognizeStream.end();
+		file.end()
+		//recognizeStream.end();
 		clientStream.end();
 		isRecording = false
 	}
@@ -235,7 +211,7 @@ client.on("error", (error) => {
 
 async function webPlayNewSong(serverStream, url)
 {
-	serverStream.on('data', function(url) {
+	serverStream.on('data', (url) =>{
 		var intro_url = 'http://chatbot.iviet.com' + url
 		console.log(intro_url);
 		exec(`./playurl ${intro_url}`)
@@ -245,16 +221,36 @@ async function webPlayNewSong(serverStream, url)
 }
 
 function playStream(serverStream) {
-	console.log('play stream event');
-	// var speaker = new Speaker(audioOptions);
-	// var decoder = lame.Decoder()
-	// decoder.pipe(speaker)
+	var musicResume = false
+	if(music_manager.isMusicPlaying == true) {
+		music_manager.eventsHandler(events.Pause)
+		musicResume = true
+	}
 
- 	//serverStream.pipe(file_sorry);
-	serverStream.on('data', function(url) {
-		console.log('url ' + url);
-		//serverStream.pipe(decoder);
- 	})
+	console.log('playStream via url');
+	serverStream.on('data', (url) => {
+		console.log(url);
+		var https = url.substring(0, 5)
+		if(https == 'https')
+		{
+			//play https mp3 using mpg123
+			exec(`./mpg123_https ${url}`).on('exit', async() => {
+				if(musicResume === true) {
+					music_manager.eventsHandler(events.Resume)
+				}
+			})
+		}
+		else {
+			var http_url = 'http://chatbot.iviet.com' + url
+			console.log(http_url);
+			//play http mp3 using mpg123
+			exec(`./playurl ${http_url}`).on('exit', async() => {
+				if(musicResume === true) {
+					music_manager.eventsHandler(events.Resume)
+				}
+			})
+		}
+	})
 }
 /**
  * Receiving directive and streaming source from server to this client after streamed audio recording to server.
@@ -276,10 +272,10 @@ client.on("stream", async (serverStream, directive) => {
 		// 	musicResume = true
 		// }
 
-		reset_micarray()
+		//reset_micarray()
 		console.log('xin loi eo ghi am duoc!!!');
 		// exec(`aplay ${current_path}/Sounds/${'donthearanything.wav'}`).on('exit', function(code, signal) {
-		// 	if(musicResume == true) {
+		// 	if(musicResume === true) {
 		// 			music_manager.eventsHandler(events.Resume)
 		// 	}
 		// })
@@ -372,7 +368,7 @@ client.on("stream", async (serverStream, directive) => {
 			Buffer_UserEvent(BLE_OFF)
 		}
 		setTimeout(() => {
-			if(musicResume == true) {
+			if(musicResume === true) {
 				music_manager.eventsHandler(events.Resume)
 			}
 		}, 500);
@@ -406,23 +402,20 @@ process.on('SIGINT', function () {
 
 
 function event_watcher() {
-	gpio48.watch(async(err, value) => {
+	gpio48.watch((err) => {
 		if (err) {
 			throw err;
 		}
-		return new Promise((resolve, reject) => {
-			//console.log('Receiving data from Mic-array')
-			i2c1.i2cReadSync(I2C_ADDRESS, BUFF_SIZE, RxBuff, function(error) {
-				if(err) {
-					ioctl.reset()
-					return reject(err)
-				}
-			})
-			BufferController(RxBuff[0], RxBuff[1])
-			resolve()
+		//console.log('Receiving data from Mic-array')
+		i2c1.i2cReadSync(I2C_ADDRESS, BUFF_SIZE, RxBuff, function(error) {
+			if(err) {
+				console.log('error transfer');
+			}
 		})
+		BufferController(RxBuff[0], RxBuff[1])
 	})
 }
+
 
 /**
  * Main
