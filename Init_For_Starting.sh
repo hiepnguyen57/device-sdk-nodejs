@@ -18,7 +18,7 @@ echo 0 > /sys/class/gpio/gpio67/value
 i2cset -y 1 0x68 0x00 0x32 0x39 i
 
 #Take a relax
-sleep 2.5
+sleep 2
 
 #Colorwheel on Led ring
 echo 1 > /sys/class/gpio/gpio67/value

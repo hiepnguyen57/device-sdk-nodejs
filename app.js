@@ -114,8 +114,8 @@ var bluealsa_aplay_disconnect = require('./bluetooth').bluealsa_aplay_disconnect
  * @param {object} eventJSON.
  */
 async function startStream(eventJSON) {
-	file_name = moment().format("YYYYMMDDHHmmss") + '.wav'
-	file = fs.createWriteStream(file_name, { encoding: 'binary' })
+	// file_name = moment().format("YYYYMMDDHHmmss") + '.wav'
+	// file = fs.createWriteStream(file_name, { encoding: 'binary' })
 
 	if(clientIsOnline === true){
 		console.log('online')
@@ -165,7 +165,7 @@ async function startStream(eventJSON) {
 		})
 
 	streamToServer.pipe(clientStream);
-	streamToServer.pipe(file);// remove comment if you want to save recording file
+	//streamToServer.pipe(file);// remove comment if you want to save recording file
 	//streamToServer.pipe(recognizeStream);
 	console.log("Speak now!!!");
 
@@ -188,7 +188,7 @@ function stopStream() {
 
 		music_manager.eventsHandler(events.FadeOutVolume)
 		recordingStream.stop();
-		file.end()
+		//file.end()
 		//recognizeStream.end();
 		clientStream.end();
 		isRecording = false
