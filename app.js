@@ -214,7 +214,7 @@ async function webPlayNewSong(serverStream, url)
 	serverStream.on('data', (url) =>{
 		var intro_url = 'http://chatbot.iviet.com' + url
 		console.log(intro_url);
-		exec(`./playurl ${intro_url}`)
+		exec(`${current_path}/playurl ${intro_url}`)
 	})
 	music_manager.url = url
 	music_manager.eventsHandler(events.W_NewSong)
@@ -234,7 +234,7 @@ function playStream(serverStream) {
 		if(https == 'https')
 		{
 			//play https mp3 using mpg123
-			exec(`./mpg123_https ${url}`).on('exit', async() => {
+			exec(`${current_path}/mpg123_https ${url}`).on('exit', async() => {
 				if(musicResume === true) {
 					music_manager.eventsHandler(events.Resume)
 				}
@@ -244,7 +244,7 @@ function playStream(serverStream) {
 			var http_url = 'http://chatbot.iviet.com' + url
 			console.log(http_url);
 			//play http mp3 using mpg123
-			exec(`./playurl ${http_url}`).on('exit', async() => {
+			exec(`${current_path}/playurl ${http_url}`).on('exit', async() => {
 				if(musicResume === true) {
 					music_manager.eventsHandler(events.Resume)
 				}
@@ -443,14 +443,16 @@ async function main() {
 		}
 		else {
 			console.log('Internet connected');
-			// exec(`aplay ${current_path}/Sounds/${'boot_sequence_intro_1.wav'}`).on('exit', async() => {
-			// 	exec(`aplay ${current_path}/Sounds/${'hello_VA.wav'}`)
-			// })
+			exec(`aplay ${current_path}/Sounds/${'boot_sequence_intro_1.wav'}`).on('exit', async() => {
+				exec(`aplay ${current_path}/Sounds/${'hello_VA.wav'}`)
+			})
 			exec(`echo 'nameserver 8.8.8.8' > /etc/resolv.conf`)
 			await bluetooth_init()
 			event_watcher()
-
 			setTimeout(() => {
+				console.log('auto agent registered');
+				exec(`ldconfig /usr/local/lib`);
+				exec(`python ${current_path}/agent.py`)
 				//check client connection
 				if(clientIsOnline === false)
 					Buffer_UserEvent(CLIENT_ERROR)
@@ -459,21 +461,21 @@ async function main() {
 	})
 
 }
-var count_vol = 0
 async function Buffer_ButtonEvent(command) {
 	var current_vol
 
 	switch(command) {
 		case VOLUME_UP:
-			count_vol++
 			await amixer.volume_control('volumeup')
 			current_vol = await amixer.volume_control('getvolume')
+			console.log('volsendup: ' + current_vol);
 			await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_UP, current_vol)
 			console.log('volume up')
 			break;
 		case VOLUME_DOWN:
 			await amixer.volume_control('volumedown')
 			current_vol = await amixer.volume_control('getvolume')
+			console.log('volsenddown: ' + current_vol);
 			if(current_vol < 30) {
 				await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_MUTE, current_vol)
 			}

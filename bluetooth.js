@@ -91,8 +91,8 @@ async function bluez_handler() {
 
 async function bluetooth_init() {
 	await bluetooth.init()
-	exec('python ./agent.py')
-	console.log('Agent registered');
+	// exec(`python ${current_path}/agent.py`)
+	//console.log('Agent registered');
 	await bluez_handler()
 	const adapter = await bluetooth.getAdapter('hci0');
 	await adapter.Powered('on');

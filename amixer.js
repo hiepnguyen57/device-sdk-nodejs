@@ -34,14 +34,17 @@ function volume_control(input) {
 					if (appvol <= offset_min_volume)
 						appvol = 0;
 				}
-				if (appvol < offset_min_volume) {
-					exec(`amixer -c ${AUDIO_CARD} set PCM 0%`)
-				}
-				else {
-					exec(`amixer -c ${AUDIO_CARD} set PCM ${appvol}%`)
-				}
-				console.log('volume level: ' + appvol);
-				resolve();
+				// if (appvol < offset_min_volume) {
+				// 	appvol = 0;
+				// 	// exec(`amixer -c ${AUDIO_CARD} set PCM 0%`).on('exit', async() =>{
+				// 	// 	console.log('volume level: ' + appvol);
+				// 	// 	resolve()
+				// 	// })
+				// }
+				exec(`amixer -c ${AUDIO_CARD} set PCM ${appvol}%`).on('exit', async() => {
+					console.log('volume level: ' + appvol);
+					resolve()
+				})
 				break;
 			case 'getvolume':
 				var {stdout} = await exec_promise(`amixer -c ${AUDIO_CARD} sget PCM | grep \'Right:\' | awk -F\'[][]\' \'{ print $2 }\'`);
