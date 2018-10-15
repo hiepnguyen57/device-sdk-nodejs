@@ -234,7 +234,12 @@ function playStream(serverStream) {
 		if(https == 'https')
 		{
 			//play https mp3 using mpg123
-			exec(`${current_path}/mpg123_https ${url}`).on('exit', async() => {
+			// exec(`${current_path}/mpg123_https ${url}`).on('exit', async() => {
+			// 	if(musicResume === true) {
+			// 		music_manager.eventsHandler(events.Resume)
+			// 	}
+			// })
+			exec(`mpg123 ${current_path}/Sounds/sorry_i_dont_understand.mp3`).on('exit', async() => {
 				if(musicResume === true) {
 					music_manager.eventsHandler(events.Resume)
 				}
@@ -266,19 +271,19 @@ client.on("stream", async (serverStream, directive) => {
 	== ${directive.card == null ? directive.card : directive.card.cardOutputSpeech}`)
 
 	if (directive.header.name == "Recognize" && directive.payload.format == "AUDIO_L16_RATE_16000_CHANNELS_1") {
-		// var musicResume = false
-		// if(music_manager.isMusicPlaying == true) {
-		// 	music_manager.eventsHandler(events.Pause)
-		// 	musicResume = true
-		// }
+		var musicResume = false
+		if(music_manager.isMusicPlaying == true) {
+			music_manager.eventsHandler(events.Pause)
+			musicResume = true
+		}
 
-		//reset_micarray()
+		reset_micarray()
 		console.log('xin loi eo ghi am duoc!!!');
-		// exec(`aplay ${current_path}/Sounds/${'donthearanything.wav'}`).on('exit', function(code, signal) {
-		// 	if(musicResume === true) {
-		// 			music_manager.eventsHandler(events.Resume)
-		// 	}
-		// })
+		exec(`aplay ${current_path}/Sounds/${'donthearanything.wav'}`).on('exit', function(code, signal) {
+			if(musicResume === true) {
+					music_manager.eventsHandler(events.Resume)
+			}
+		})
 	}
 
 	if (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Empty") {
@@ -364,8 +369,8 @@ client.on("stream", async (serverStream, directive) => {
 			Buffer_UserEvent(BLE_ON)
 		}
 		else if (directive.header.name == "DisconnectDevice") {
-			await bluetooth_discoverable('off')
 			Buffer_UserEvent(BLE_OFF)
+			await bluetooth_discoverable('off')
 		}
 		setTimeout(() => {
 			if(musicResume === true) {
@@ -423,12 +428,6 @@ function event_watcher() {
  * @param {} ();
  */
 async function main() {
-	exec(`/home/root/line_amp.sh`).on('exit', async() => {
-		setTimeout(async() => {
-			await amixer.volume_control('setvolume 40')
-		}, 1000);
-	})
-
 	reset_micarray()
 
 	require('dns').resolve('www.google.com', async(err) => {
@@ -439,7 +438,7 @@ async function main() {
 				exec(`aplay ${current_path}/Sounds/${'remind_wifi_connection.wav'}`).on('exit', async() => {
 					Buffer_UserEvent(WIFI_DISCONNECTED);
 				})
-			}, 3000);
+			}, 1000);
 		}
 		else {
 			console.log('Internet connected');
@@ -453,6 +452,7 @@ async function main() {
 				console.log('auto agent registered');
 				exec(`ldconfig /usr/local/lib`);
 				exec(`python ${current_path}/agent.py`)
+				//amixer.volume_control('setvolume 40')
 				//check client connection
 				if(clientIsOnline === false)
 					Buffer_UserEvent(CLIENT_ERROR)
@@ -630,6 +630,15 @@ async function BufferController(target, command) {
 	}
 }
 
+bluez_event.on('connected', async() => {
+	music_manager.eventsHandler(events.FadeInVolume)
+	setTimeout(async() => {
+	//new device notification
+		exec(`aplay ${current_path}/Sounds/${'VA_bluetooth_connected.wav'}`).on('exit', () => {
+			music_manager.eventsHandler(events.FadeOutVolume)
+		})
+	}, 100);
+})
 
 bluez_event.on('state', async(state) => {
 	//console.log('bluetooth state: ' + state);
