@@ -60,7 +60,6 @@ async function bluez_handler() {
 		DeviceName = await device.Name() + ' - A2DP'
 		console.log('New device connected as ' + device_info.address);
 		console.log('bluealsa control: ' + DeviceName);
-
 	})
 
 	bluetooth.on('device disconnected', async() => {

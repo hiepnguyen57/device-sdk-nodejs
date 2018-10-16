@@ -90,7 +90,7 @@ var RxBuff = new Buffer([0x00, 0x00])
 
 const i2c1 = i2c.openSync(1)
 var fs = require('fs')
-var fifo = require('fifo')()
+//var fifo = require('fifo')()
 var clientIsOnline
 var file_name = null
 var file = null;
@@ -98,6 +98,8 @@ var client = new BinaryClient('wss://chatbot.iviet.com:4433');
 var clientStream;
 var recognizeStream;
 var isRecording = false;
+var isBluePlaying = false;
+var isBlueResume = false;
 
 var music_manager = require('./music_player').getMusicManager()
 const bluetooth_discoverable = require('./bluetooth').bluetooth_discoverable
@@ -372,12 +374,17 @@ client.on("stream", async (serverStream, directive) => {
 			Buffer_UserEvent(BLE_OFF)
 			await bluetooth_discoverable('off')
 		}
-		setTimeout(() => {
-			if(musicResume === true) {
-				music_manager.eventsHandler(events.Resume)
-			}
-		}, 500);
 
+		if(isBlueResume != true) {
+			setTimeout(() => {
+				if(musicResume === true) {
+					music_manager.eventsHandler(events.Resume)
+				}
+			}, 500);
+		}
+		else {
+			isBlueResume = false;//reset flags
+		}
 		return
 	}
 
@@ -452,7 +459,6 @@ async function main() {
 				console.log('auto agent registered');
 				exec(`ldconfig /usr/local/lib`);
 				exec(`python ${current_path}/agent.py`)
-				//amixer.volume_control('setvolume 40')
 				//check client connection
 				if(clientIsOnline === false)
 					Buffer_UserEvent(CLIENT_ERROR)
@@ -648,17 +654,26 @@ bluez_event.on('state', async(state) => {
 		//need to fix when bluealsa support dmix
 		await bluealsa_aplay_connect()
 		music_manager.isMusicPlaying = true
+		isBluePlaying = true
 	}
 	else {//state = paused
 		//need to fix when bluealsa support dmix
 		await bluealsa_aplay_disconnect()
 		music_manager.isMusicPlaying = false
+		isBluePlaying = false
 	}
 })
 
 bluez_event.on('finished', async() => {
 	music_manager.eventsHandler(events.B_Finished)
-	music_manager.isMusicPlaying = false
+	if(isBluePlaying === true) {
+		music_manager.isMusicPlaying = false
+		isBlueResume = true
+	}
+	else {
+		isBlueResume = false
+	}
+	isBluePlaying = false
 })
 
 /**

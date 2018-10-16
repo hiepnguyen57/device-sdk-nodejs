@@ -29,7 +29,7 @@ function reset() {
 }
 
 function Transmit(target, command, value) {
-	//create pulse before transmission
+	//emit pulse before transmission
 	pulse()
 	//console.log('Sending data to Mic-array');
 	data[0] = target
@@ -85,11 +85,11 @@ function unmute() {
 	})
 }
 
-function setRGB(object, red, green, blue) {
+function setRGB(led, red, green, blue) {
 	//create pulse before transmission
 	pulse()
 
-	data[0] = object
+	data[0] = led
 	data[1] = red
 	data[2] = green
 	data[3] = blue
