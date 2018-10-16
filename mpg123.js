@@ -1,7 +1,5 @@
 const {spawn} = require("child_process")
-// const STATUS_PLAY = 1
-// const STATUS_PAUSE = 2
-// const STATUS_STOP = 3
+
 const mpg123Status = {
 	idle: 			1,
 	play: 			2,

@@ -57,12 +57,6 @@ async function bluez_handler() {
 
 		bluez_event.emit('connected');
 		device = await bluetooth.getDevice(obj)
-		//exec(`aplay ${current_path}/Sounds/${VA_BLE_CONNECTED}`)
-		// setTimeout(async() => {
-		// //get device name
-		// 	device_name = await device.Name() + ' - A2DP'
-		// 	console.log('device name: ' + device_name);
-		// }, 100);
 		DeviceName = await device.Name() + ' - A2DP'
 		console.log('New device connected as ' + device_info.address);
 		console.log('bluealsa control: ' + DeviceName);
@@ -70,12 +64,13 @@ async function bluez_handler() {
 	})
 
 	bluetooth.on('device disconnected', async() => {
-		//remove all informations which device connected
+		//remove all informations of the old device
 		device_info.address = ''
 		device_info.objPath = ''
 		MacAddress = ''
 		device = null
 		DeviceName = ''
+
 		await bluealsa_aplay_disconnect()
 		await exec(`aplay ${current_path}/Sounds/${BLE_DISCONNECTED}`)
 		bluez_event.emit('finished')
@@ -123,16 +118,6 @@ async function bluetooth_discoverable(command) {
 	}
 }
 
-// async function get_bluealsa_control() {
-// 	if(device_info.objPath != '') {
-// 		var deviceName = await device.Name() + ' - A2DP'
-// 		//console.log('deviceName: ' + deviceName);
-// 		return deviceName
-// 	}
-// 	else
-// 		console.log('No device connected');
-// }
-
 function bluealsa_volume_control(input) {
 	if(DeviceName == '') {
 		console.log('No device connected!!!');
@@ -141,8 +126,6 @@ function bluealsa_volume_control(input) {
 	else {
 		return new Promise(async(resolve) => {
 			var command, vol
-			//var DeviceName = await get_bluealsa_control()
-			//console.log('DeviceName: ' + DeviceName);
 			var index_string = input.indexOf(" ")
 			if(index_string >= 0) {
 				command = input.slice(0, index_string)

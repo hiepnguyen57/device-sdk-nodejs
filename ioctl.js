@@ -28,7 +28,7 @@ function reset() {
 	})
 }
 
-exports.Transmit = function(target, command, value) {
+function Transmit(target, command, value) {
 	//create pulse before transmission
 	pulse()
 	//console.log('Sending data to Mic-array');
@@ -43,7 +43,7 @@ exports.Transmit = function(target, command, value) {
 	})
 }
 
-exports.mute = function() {
+function mute() {
 	//Select Page 0
 	data[0] = 0x00
 	data[1] = 0x00
@@ -64,7 +64,7 @@ exports.mute = function() {
 	})
 }
 
-exports.unmute = function() {
+function unmute() {
 	//Select Page 0
 	data[0] = 0x00
 	data[1] = 0x00
@@ -85,7 +85,7 @@ exports.unmute = function() {
 	})
 }
 
-exports.setRGB = function(object, red, green, blue) {
+function setRGB(object, red, green, blue) {
 	//create pulse before transmission
 	pulse()
 
@@ -101,4 +101,10 @@ exports.setRGB = function(object, red, green, blue) {
 	})
 }
 
-module.exports.reset = reset
+module.exports = {
+	reset: 				reset,
+	Transmit: 			Transmit,
+	mute: 				mute,
+	unmute: 			unmute,
+	setRGB: 			setRGB
+}
