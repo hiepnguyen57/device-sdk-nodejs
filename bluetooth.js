@@ -1,8 +1,6 @@
 const Bluez = require('./bluez/Bluez.js')
 const bluetooth = new Bluez()
 const dbus = require('dbus-native')
-const systemBus =  dbus.systemBus()
-var service = systemBus.getService('org.bluez')
 const util = require('util');
 const exec = require("child_process").exec;
 const {spawn} = require('child_process')
@@ -76,21 +74,30 @@ async function bluez_handler() {
 		console.log('device disconnected');
 	})
 
-	bluetooth.on('update status', async(obj) => {
-		service.getInterface(obj, 'org.freedesktop.DBus.Properties', (err, notification) => {
-			if(err) {
-				console.error(err)
-			}
+	// bluetooth.on('update status', async(obj) => {
+	// 	obj
+	// 	service.getInterface(obj, 'org.freedesktop.DBus.Properties', (err, notification) => {
+	// 		if(err) {
+	// 			console.error(err)
+	// 		}
 
-			notification.on('PropertiesChanged', async (signal, status) => {
-				if (status[0][0] == 'Status') {
-					var state = status[0][1][1][0]
-					bluez_event.emit('state', state)
-					console.log('update state: ' + state);
-				}
-			})
-		})
-	})
+	// 		notification.on('PropertiesChanged', async(signal, status) => {
+	// 			if (status[0][0] == 'Status') {
+	// 				console.log('signal: ' + signal);
+	// 				console.log('status: ' + status);
+	// 				var state = status[0][1][1][0]
+	// 				console.log('update state: ' + state);
+	// 				// if(state == "playing") {
+	// 				// 	await bluealsa_aplay_connect()
+	// 				// }
+	// 				// else {
+	// 				// 	await bluealsa_aplay_disconnect()
+	// 				// }
+	// 				// bluez_event.emit('state', state)
+	// 			}
+	// 		})
+	// 	})
+	// })
 }
 
 async function bluetooth_init() {

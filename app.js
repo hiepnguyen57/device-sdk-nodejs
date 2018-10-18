@@ -107,6 +107,7 @@ const bluetooth_init = require('./bluetooth').bluetooth_init
 const events = require('./music_player').events
 const amixer = require('./amixer')
 var bluez_event = require('./bluetooth').bluez_event
+var bluetooth = require('./bluetooth').bluetooth
 var bluealsa_aplay_connect = require('./bluetooth').bluealsa_aplay_connect
 var bluealsa_aplay_disconnect = require('./bluetooth').bluealsa_aplay_disconnect
 /* Private function ----------------------------------------------------------*/
@@ -367,23 +368,35 @@ client.on("stream", async (serverStream, directive) => {
 
 		if (directive.header.name == "ConnectByDeviceId") {
 			await bluetooth_discoverable('on')
-			exec(`aplay ${current_path}/Sounds/${'bluetooth_connected_322896.wav'}`)
 			Buffer_UserEvent(BLE_ON)
+			exec(`aplay ${current_path}/Sounds/${'bluetooth_connected_322896.wav'}`).on('exit', async() => {
+				//fix me, alsa-driver
+				if(isBlueResume != true) {
+					setTimeout(() => {
+						if(musicResume === true) {
+							music_manager.eventsHandler(events.Resume)
+						}
+					}, 500);
+				}
+				else {
+					isBlueResume = false;//reset flags
+				}
+			})
 		}
 		else if (directive.header.name == "DisconnectDevice") {
 			Buffer_UserEvent(BLE_OFF)
 			await bluetooth_discoverable('off')
-		}
-
-		if(isBlueResume != true) {
-			setTimeout(() => {
-				if(musicResume === true) {
-					music_manager.eventsHandler(events.Resume)
-				}
-			}, 500);
-		}
-		else {
-			isBlueResume = false;//reset flags
+			//fix me, alsa-driver
+			if(isBlueResume != true) {
+				setTimeout(() => {
+					if(musicResume === true) {
+						music_manager.eventsHandler(events.Resume)
+					}
+				}, 500);
+			}
+			else {
+				isBlueResume = false;//reset flags
+			}
 		}
 		return
 	}
@@ -436,35 +449,38 @@ function event_watcher() {
  */
 async function main() {
 	reset_micarray()
-
-	require('dns').resolve('www.google.com', async(err) => {
-		if(err) {
-			console.log('No connection');
-			//play audio notification here
-			setTimeout(() => {
-				exec(`aplay ${current_path}/Sounds/${'remind_wifi_connection.wav'}`).on('exit', async() => {
-					Buffer_UserEvent(WIFI_DISCONNECTED);
-				})
-			}, 1000);
-		}
-		else {
-			console.log('Internet connected');
-			exec(`aplay ${current_path}/Sounds/${'boot_sequence_intro_1.wav'}`).on('exit', async() => {
-				exec(`aplay ${current_path}/Sounds/${'hello_VA.wav'}`)
-			})
-			exec(`echo 'nameserver 8.8.8.8' > /etc/resolv.conf`)
-			await bluetooth_init()
-			event_watcher()
-			setTimeout(() => {
-				console.log('auto agent registered');
-				exec(`ldconfig /usr/local/lib`);
-				exec(`python ${current_path}/agent.py`)
-				//check client connection
-				if(clientIsOnline === false)
-					Buffer_UserEvent(CLIENT_ERROR)
-			}, 3000);
-		}
+	exec(`/bin/bash /home/root/tlv320aic.sh`).on('exit', () => {
+		require('dns').resolve('www.google.com', async(err) => {
+			if(err) {
+				console.log('No connection');
+				//play audio notification here
+				setTimeout(() => {
+					exec(`aplay ${current_path}/Sounds/${'remind_wifi_connection.wav'}`).on('exit', async() => {
+						Buffer_UserEvent(WIFI_DISCONNECTED);
+					})
+				}, 1000);
+			}
+			else {
+				console.log('Internet connected');
+				setTimeout(() => {
+					exec(`aplay ${current_path}/Sounds/${'boot_sequence_intro_1.wav'}`).on('exit', async() => {
+						exec(`aplay ${current_path}/Sounds/${'hello_VA.wav'}`)
+					})
+				}, 1000);
+				exec(`echo 'nameserver 8.8.8.8' > /etc/resolv.conf`)
+				await bluetooth_init()
+				event_watcher()
+				setTimeout(() => {
+					console.log('auto agent registered');
+					exec(`python ${current_path}/agent.py`)
+					//check client connection
+					if(clientIsOnline === false)
+						Buffer_UserEvent(CLIENT_ERROR)
+				}, 3000);
+			}
+		})
 	})
+
 }
 
 async function Buffer_ButtonEvent(command) {
@@ -646,24 +662,6 @@ bluez_event.on('connected', async() => {
 	}, 100);
 })
 
-bluez_event.on('state', async(state) => {
-	//console.log('bluetooth state: ' + state);
-	music_manager.bluePlayer.setState(state)
-	if(state == 'playing') {
-		await music_manager.eventsHandler(events.B_Play)
-		//need to fix when bluealsa support dmix
-		await bluealsa_aplay_connect()
-		music_manager.isMusicPlaying = true
-		isBluePlaying = true
-	}
-	else {//state = paused
-		//need to fix when bluealsa support dmix
-		await bluealsa_aplay_disconnect()
-		music_manager.isMusicPlaying = false
-		isBluePlaying = false
-	}
-})
-
 bluez_event.on('finished', async() => {
 	music_manager.eventsHandler(events.B_Finished)
 	if(isBluePlaying === true) {
@@ -676,6 +674,23 @@ bluez_event.on('finished', async() => {
 	isBluePlaying = false
 })
 
+bluetooth.on('update state', async(state) => {
+	console.log('bluetooth state: ' + state);
+	music_manager.bluePlayer.setState(state)
+	if(state == 'playing') {
+		//need to fix when bluealsa support dmix
+		await bluealsa_aplay_connect()
+		music_manager.eventsHandler(events.B_Play)
+		music_manager.isMusicPlaying = true
+		isBluePlaying = true
+	}
+	else {//state = paused or stopped
+		//need to fix when bluealsa support dmix
+		await bluealsa_aplay_disconnect()
+		music_manager.isMusicPlaying = false
+		isBluePlaying = false
+	}
+})
 /**
  * Main: running first
  */

@@ -6,6 +6,8 @@ const Adapter = require('./Adapter');
 const Device = require('./Device');
 const Agent = require('./Agent');
 const Profile = require('./Profile');
+var bluez_update = new EventEmitter()
+
 var ignore_device_signal = false
 var ignore_status_signal = false
 
@@ -26,13 +28,15 @@ class Bluez extends EventEmitter {
     }
 
     async init() {
-        this.objectManager = await this.getInterface('/', 'org.freedesktop.DBus.ObjectManager')
+        //this.objectManager = await this.getInterface('/', 'org.freedesktop.DBus.ObjectManager')
         //this.agentManager = await this.DbusgetInterface('org.bluez', '/org/bluez', 'org.bluez.AgentManager1');
         //this.profileManager = await this.getInterface('org.bluez', '/org/bluez', 'org.bluez.ProfileManager1');
+        this.service.getInterface('/', 'org.freedesktop.DBus.ObjectManager', (err, objectManager) => {
+            if(err) {
+                console.error(err);
+            }
 
-        if(ignore_device_signal == false) {
-            ignore_device_signal = true
-            this.objectManager.on('InterfacesAdded', async(path) => {
+            objectManager.on('InterfacesAdded', async(path) => {
                 const match = path.match(new RegExp("^/org/bluez/(\\w+)(?:/dev_(\\w+))?\/(((player)|(fd))[0-9]+)$"))
                 if(!match) return;
                 if (match[4] == 'fd') {
@@ -43,19 +47,66 @@ class Bluez extends EventEmitter {
                 else if (match[4] == 'player') {
                     if(ignore_status_signal == false) {
                         ignore_status_signal = true
-                        this.emit("update status", match[0])
+                        this.service.getInterface(match[0], 'org.freedesktop.DBus.Properties', (err, notification) => {
+                            notification.on('PropertiesChanged', async(signal, status) => {
+                                if(status[0][0] == 'Status') {
+                                    var state = status[0][1][1][0]
+                                    this.emit('update state', state)
+                                }
+                                else if(status[1] != undefined) {
+                                    if(status[1][0] == 'Status') {
+                                        this.emit('update state', status[1][1][1][0])
+                                    }
+                                }
+                            })
+                        })
                     }
-
                 }
             })
 
-            this.objectManager.on('InterfacesRemoved', async(path) => {
+            objectManager.on('InterfacesRemoved', async(path) => {
                 const match = path.match(new RegExp("^/org/bluez/(\\w+)(?:/dev_(\\w+))?\/((fd)[0-9]+)$"))
                 if(match != null) {
                     this.emit("device disconnected")
                 }
             })
-        }
+        // if(ignore_device_signal == false) {
+        //     ignore_device_signal = true
+        //     this.objectManager.on('InterfacesAdded', async(path) => {
+        //         const match = path.match(new RegExp("^/org/bluez/(\\w+)(?:/dev_(\\w+))?\/(((player)|(fd))[0-9]+)$"))
+        //         if(!match) return;
+        //         if (match[4] == 'fd') {
+        //             const objPath = "/org/bluez/hci0/dev_" + match[2]
+        //             const mac_address = match[2].replace(/_/g, ':');
+        //             this.emit("device connected", mac_address, objPath)
+        //         }
+        //         else if (match[4] == 'player') {
+        //             if(ignore_status_signal == false) {
+        //                 ignore_status_signal = true
+        //                 this.service.getInterface(match[0], 'org.freedesktop.DBus.Properties', (err, notification) => {
+        //                     notification.on('PropertiesChanged', async(signal, status) => {
+        //                         if(status[0][0] == 'Status') {
+        //                             var state = status[0][1][1][0]
+        //                             this.emit('update state', state)
+        //                         }
+        //                         else if(status[1] != undefined) {
+        //                             if(status[1][0] == 'Status') {
+        //                                 this.emit('update state', status[1][1][1][0])
+        //                             }
+        //                         }
+        //                     })
+        //                 })
+        //             }
+        //         }
+        //     })
+
+        //     this.objectManager.on('InterfacesRemoved', async(path) => {
+        //         const match = path.match(new RegExp("^/org/bluez/(\\w+)(?:/dev_(\\w+))?\/((fd)[0-9]+)$"))
+        //         if(match != null) {
+        //             this.emit("device disconnected")
+        //         }
+        //     })
+        })
     }
 
     async getAdapter(dev) {
@@ -128,52 +179,52 @@ class Bluez extends EventEmitter {
         })
     }
 
-    listAllDevice() {
-        return new Promise(resolve => {
-            var bluez_device_list = {}
-            this.objectManager.GetManagedObjects((err, objects) => {
-                if(err) {
-                    console.error(err);
-                }
+    // listAllDevice() {
+    //     return new Promise(resolve => {
+    //         var bluez_device_list = {}
+    //         this.objectManager.GetManagedObjects((err, objects) => {
+    //             if(err) {
+    //                 console.error(err);
+    //             }
 
-                for(var object in objects) {
-                    if(object >= 2) {
-                        //check MAC invalid
-                        const regex = /([0-9A-Z]{2}:){5}[0-9A-Z]{2}/g
-                        const match = regex.exec(objects[object][1][1][1][0][1][1][0])
+    //             for(var object in objects) {
+    //                 if(object >= 2) {
+    //                     //check MAC invalid
+    //                     const regex = /([0-9A-Z]{2}:){5}[0-9A-Z]{2}/g
+    //                     const match = regex.exec(objects[object][1][1][1][0][1][1][0])
 
-                        /* if MAC == name */
-                        if (match[0].replace(/:/g, '-') == objects[object][1][1][1][2][1][1][0]) continue;
-                        bluez_device_list[`${objects[object][1][1][1][0][1][1][0]}`] = []
-                        /* Get MAC address of bluetooth device to init key of array*/
-                        bluez_device_list[`${objects[object][1][1][1][0][1][1][0]}`][0] =
-                            objects[object][0]
-                        // The first element, get object path 
-                        bluez_device_list[`${objects[object][1][1][1][0][1][1][0]}`][1] =
-                            objects[object][1][1][1][2][1][1][0]
-                        /* The second element, get Name of bluetooth device */
-                    }
-                }
+    //                     /* if MAC == name */
+    //                     if (match[0].replace(/:/g, '-') == objects[object][1][1][1][2][1][1][0]) continue;
+    //                     bluez_device_list[`${objects[object][1][1][1][0][1][1][0]}`] = []
+    //                     /* Get MAC address of bluetooth device to init key of array*/
+    //                     bluez_device_list[`${objects[object][1][1][1][0][1][1][0]}`][0] =
+    //                         objects[object][0]
+    //                     // The first element, get object path 
+    //                     bluez_device_list[`${objects[object][1][1][1][0][1][1][0]}`][1] =
+    //                         objects[object][1][1][1][2][1][1][0]
+    //                     /* The second element, get Name of bluetooth device */
+    //                 }
+    //             }
 
-                for(var object in objects) {
-                    if(object >= 2) {
-                        const regex = /\/org\/bluez\/hci0\/dev_(.*)\/(((player)|(fd))[0-9]+)$/g;
-                        const match = regex.exec(objects[object][0])
+    //             for(var object in objects) {
+    //                 if(object >= 2) {
+    //                     const regex = /\/org\/bluez\/hci0\/dev_(.*)\/(((player)|(fd))[0-9]+)$/g;
+    //                     const match = regex.exec(objects[object][0])
 
-                        if(match == null) continue;
-                        var mac = match[1].replace(/_/g, ':');
-                        if(match[3] == 'fd') {
-                            bluez_device_list[mac][2] = match[0]
-                        }
-                        else if(match[3] == 'player') {
-                            bluez_device_list[mac][3] = match[0]
-                        }
-                    }
-                }
-                resolve(bluez_device_list)
-            })
-        })
-    }
+    //                     if(match == null) continue;
+    //                     var mac = match[1].replace(/_/g, ':');
+    //                     if(match[3] == 'fd') {
+    //                         bluez_device_list[mac][2] = match[0]
+    //                     }
+    //                     else if(match[3] == 'player') {
+    //                         bluez_device_list[mac][3] = match[0]
+    //                     }
+    //                 }
+    //             }
+    //             resolve(bluez_device_list)
+    //         })
+    //     })
+    // }
 
     registerAgent(agent, capabilities) {
         // assert(agent instance of Agent)
