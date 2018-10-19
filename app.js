@@ -252,7 +252,10 @@ function playStream(serverStream) {
 			var http_url = 'http://chatbot.iviet.com' + url
 			console.log(http_url);
 			//play http mp3 using mpg123
-			exec(`${current_path}/playurl ${http_url}`).on('exit', async() => {
+			exec(`${current_path}/playurl ${http_url}`).on('exit', async(err) => {
+				if(err) {
+					console.log('can not load http link');
+				}
 				if(musicResume === true) {
 					music_manager.eventsHandler(events.Resume)
 				}
@@ -370,7 +373,7 @@ client.on("stream", async (serverStream, directive) => {
 			await bluetooth_discoverable('on')
 			Buffer_UserEvent(BLE_ON)
 			exec(`aplay ${current_path}/Sounds/${'bluetooth_connected_322896.wav'}`).on('exit', async() => {
-				//fix me, alsa-driver
+
 				if(isBlueResume != true) {
 					setTimeout(() => {
 						if(musicResume === true) {
@@ -386,7 +389,7 @@ client.on("stream", async (serverStream, directive) => {
 		else if (directive.header.name == "DisconnectDevice") {
 			Buffer_UserEvent(BLE_OFF)
 			await bluetooth_discoverable('off')
-			//fix me, alsa-driver
+
 			if(isBlueResume != true) {
 				setTimeout(() => {
 					if(musicResume === true) {
@@ -488,16 +491,15 @@ async function Buffer_ButtonEvent(command) {
 
 	switch(command) {
 		case VOLUME_UP:
-			await amixer.volume_control('volumeup')
-			current_vol = await amixer.volume_control('getvolume')
-			console.log('volsendup: ' + current_vol);
+			current_vol = await amixer.volume_control('volumeup')
+			//current_vol = await amixer.volume_control('getvolume')
 			await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_UP, current_vol)
 			console.log('volume up')
+			console.log('current volume: ' + current_vol);
 			break;
 		case VOLUME_DOWN:
-			await amixer.volume_control('volumedown')
-			current_vol = await amixer.volume_control('getvolume')
-			console.log('volsenddown: ' + current_vol);
+			current_vol = await amixer.volume_control('volumedown')
+			//current_vol = await amixer.volume_control('getvolume')
 			if(current_vol < 30) {
 				await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_MUTE, current_vol)
 			}
@@ -505,6 +507,7 @@ async function Buffer_ButtonEvent(command) {
 				await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_DOWN, current_vol)
 			}
 			console.log('volume down')
+			console.log('current volume: ' + current_vol);
 			break;
 		case VOLUME_MUTE:
 			await ioctl.mute()

@@ -42,8 +42,8 @@ function volume_control(input) {
 				// 	// })
 				// }
 				exec(`amixer -c ${AUDIO_CARD} set PCM ${appvol}%`).on('exit', async() => {
-					console.log('volume level: ' + appvol);
-					resolve()
+					//console.log('volume level: ' + appvol);
+					resolve(appvol)
 				})
 				break;
 			case 'getvolume':
