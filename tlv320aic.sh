@@ -123,5 +123,5 @@ i2cset -y -f 1 0x18 0x40 0x00
 #
 
 sleep 1
-#set PCM as 50%
-amixer sset PCM 50%
+#set PCM as 60%
+amixer sset PCM 70%

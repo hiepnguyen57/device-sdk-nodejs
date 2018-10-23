@@ -4,6 +4,7 @@ const exec = require("child_process").exec;
 const AUDIO_CARD = 0 //TLV320AIC plughw:0,0
 const offset_min_volume = 20;
 //var blueVolBeforeFading
+var volBeforeFading
 
 function volume_control(input) {
 	return new Promise(async resolve => {
@@ -61,7 +62,6 @@ function volume_control(input) {
 				var fadeinvol = parseInt(stdout.slice(0, stdout.length - 1))
 
 				volBeforeFading = fadeinvol
-
 				while(fadeinvol > 30) {
 					fadeinvol = fadeinvol - 5
 					exec(`amixer -c ${AUDIO_CARD} set PCM ${fadeinvol}%`)

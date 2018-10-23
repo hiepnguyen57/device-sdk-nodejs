@@ -1,6 +1,6 @@
 [Unit]
 Description=Boot sequence service
-#After=sysinit.target
+After=network.target bb-wl18xx-bluetooth.service
 
 [Service]
 Type=simple

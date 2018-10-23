@@ -68,9 +68,9 @@ async function bluez_handler() {
 		device = null
 		DeviceName = ''
 
+		bluez_event.emit('finished')
 		await bluealsa_aplay_disconnect()
 		await exec(`aplay ${current_path}/Sounds/${BLE_DISCONNECTED}`)
-		bluez_event.emit('finished')
 		console.log('device disconnected');
 	})
 

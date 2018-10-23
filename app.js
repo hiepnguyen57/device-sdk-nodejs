@@ -70,7 +70,7 @@ const MICROPHONE_MUTE = 0x26
 const MICROPHONE_UNMUTE = 0x27
 const WIFI_CONNECTED = 0x40
 const WIFI_DISCONNECTED = 0x41
-const RECORD_ERROR = 0x42
+const ERROR_RECORD = 0x42
 const BLE_ON = 0x43
 const BLE_OFF = 0x44
 const USB_AUDIO = 0x45
@@ -119,6 +119,11 @@ var bluealsa_aplay_disconnect = require('./bluetooth').bluealsa_aplay_disconnect
 async function startStream(eventJSON) {
 	// file_name = moment().format("YYYYMMDDHHmmss") + '.wav'
 	// file = fs.createWriteStream(file_name, { encoding: 'binary' })
+	// const START_VAL = 30;
+	// const REFRESH_VAL = 10;
+	// var countdown_speechstream = REFRESH_VAL;
+
+	amixer.volume_control('fadeInVol');
 
 	if(clientIsOnline === true){
 		console.log('online')
@@ -136,27 +141,26 @@ async function startStream(eventJSON) {
 	// 		languageCode: mic_options.languageCode,
 	// 	},
 	// 	interimResults: true, /* If you want interim results, set this to true */
-	// 	singleUtterance: false
 	// };
 
-	// /* Create a recognize stream */
+	/* Create a recognize stream */
 	// recognizeStream = speech_client
 	// 	.streamingRecognize(request)
 	// 	.on('error', (err) => {
-	// 		console.log('google speech: ' + err);
+	// 		//console.log(err);
 	// 	})
-	// 	.on('data', (data) => {
+	// 	.on('data', () => {
+	// 		countdown_speechstream = REFRESH_VAL;
 	// 	})
 	// 	.on('end', () => {
-	// 		console.log('end google speech');
-	// 		stopStream();
+	// 		console.log('end of google dectection');
 	// 	})
 
 	var streamToServer = recordingStream
 		.start({
 			sampleRate: 	16000,
 			channels: 		1,
-			verbose: 		true,
+			verbose: 		false,
 			recordProgram: 	'arecord', // Try also "rec" or "sox"
 			device: 		'plughw:1,0',
 		})
@@ -167,10 +171,19 @@ async function startStream(eventJSON) {
 			console.log('end recording');
 		})
 
+	//streamToServer.pipe(recognizeStream);
 	streamToServer.pipe(clientStream);
 	//streamToServer.pipe(file);// remove comment if you want to save recording file
-	//streamToServer.pipe(recognizeStream);
 	console.log("Speak now!!!");
+
+	// countdown_speechstream = START_VAL;
+	// setInterval(async function() {
+	// 	countdown_speechstream--;
+	// 	if(countdown_speechstream == 0) {
+	// 		stopStream();
+	// 		clearInterval(this);
+	// 	}
+	// }, 100);
 
 	setTimeout(function () {
 		console.log('Timeout recording!!!!');
@@ -183,17 +196,18 @@ async function startStream(eventJSON) {
  *
  * @param {}
  */
-function stopStream() {
+async function stopStream() {
 	if(clientIsOnline === true){
+		await amixer.volume_control('fadeOutVol')
 		console.log('stop stream');
-		//send end of sentence to mic-array
-		Buffer_UserEvent(WAKE_WORD_STOP)
-
-		music_manager.eventsHandler(events.FadeOutVolume)
+		//recognizeStream.end();
 		recordingStream.stop();
 		//file.end()
-		//recognizeStream.end();
 		clientStream.end();
+
+		//send end of sentence to mic-array
+		Buffer_UserEvent(WAKE_WORD_STOP)
+		//music_manager.eventsHandler(events.FadeOutVolume)
 		isRecording = false
 	}
 }
@@ -219,7 +233,7 @@ async function webPlayNewSong(serverStream, url)
 		console.log(intro_url);
 		exec(`${current_path}/playurl ${intro_url}`)
 	})
-	music_manager.url = url
+	music_manager.url = 'http://music.olli.vn:50052/streaming?url=' + url
 	music_manager.eventsHandler(events.W_NewSong)
 }
 
@@ -232,25 +246,20 @@ function playStream(serverStream) {
 
 	console.log('playStream via url');
 	serverStream.on('data', (url) => {
-		console.log(url);
 		var https = url.substring(0, 5)
 		if(https == 'https')
 		{
+			console.log(url);
 			//play https mp3 using mpg123
-			// exec(`${current_path}/mpg123_https ${url}`).on('exit', async() => {
-			// 	if(musicResume === true) {
-			// 		music_manager.eventsHandler(events.Resume)
-			// 	}
-			// })
-			exec(`mpg123 ${current_path}/Sounds/sorry_i_dont_understand.mp3`).on('exit', async() => {
+			exec(`${current_path}/mpg123_https.sh ${url}`).on('exit', async() => {
 				if(musicResume === true) {
 					music_manager.eventsHandler(events.Resume)
 				}
 			})
 		}
-		else {
+		else if(https == '/file') {
 			var http_url = 'http://chatbot.iviet.com' + url
-			console.log(http_url);
+			console.log('http link: ' + http_url);
 			//play http mp3 using mpg123
 			exec(`${current_path}/playurl ${http_url}`).on('exit', async(err) => {
 				if(err) {
@@ -283,7 +292,7 @@ client.on("stream", async (serverStream, directive) => {
 			musicResume = true
 		}
 
-		reset_micarray()
+		error_record()
 		console.log('xin loi eo ghi am duoc!!!');
 		exec(`aplay ${current_path}/Sounds/${'donthearanything.wav'}`).on('exit', function(code, signal) {
 			if(musicResume === true) {
@@ -452,38 +461,22 @@ function event_watcher() {
  */
 async function main() {
 	reset_micarray()
-	exec(`/bin/bash /home/root/tlv320aic.sh`).on('exit', () => {
-		require('dns').resolve('www.google.com', async(err) => {
-			if(err) {
-				console.log('No connection');
-				//play audio notification here
-				setTimeout(() => {
-					exec(`aplay ${current_path}/Sounds/${'remind_wifi_connection.wav'}`).on('exit', async() => {
-						Buffer_UserEvent(WIFI_DISCONNECTED);
-					})
-				}, 1000);
-			}
-			else {
-				console.log('Internet connected');
-				setTimeout(() => {
-					exec(`aplay ${current_path}/Sounds/${'boot_sequence_intro_1.wav'}`).on('exit', async() => {
-						exec(`aplay ${current_path}/Sounds/${'hello_VA.wav'}`)
-					})
-				}, 1000);
-				exec(`echo 'nameserver 8.8.8.8' > /etc/resolv.conf`)
-				await bluetooth_init()
-				event_watcher()
-				setTimeout(() => {
-					console.log('auto agent registered');
-					exec(`python ${current_path}/agent.py`)
-					//check client connection
-					if(clientIsOnline === false)
-						Buffer_UserEvent(CLIENT_ERROR)
-				}, 3000);
-			}
-		})
+	exec(`/bin/bash /home/root/tlv320aic.sh`).on('exit', async() => {
+		setTimeout(() => {
+			exec(`aplay ${current_path}/Sounds/${'boot_sequence_intro_1.wav'}`).on('exit', async() => {
+				exec(`aplay ${current_path}/Sounds/${'hello_VA.wav'}`)
+			})
+		}, 1000);
+		await bluetooth_init()
+		event_watcher()
+		setTimeout(() => {
+			console.log('auto agent registered');
+			exec(`python ${current_path}/agent.py`)
+			//check client connection
+			if(clientIsOnline === false)
+				Buffer_UserEvent(CLIENT_ERROR)
+		}, 3000);
 	})
-
 }
 
 async function Buffer_ButtonEvent(command) {
@@ -532,7 +525,8 @@ async function Buffer_ButtonEvent(command) {
 			//recording audio
 			if(isRecording != true) {
 				if(clientIsOnline === true) {
-					music_manager.eventsHandler(events.FadeInVolume)
+					//amixer.volume_control('fadeInVol');
+					//music_manager.eventsHandler(events.FadeInVolume)
 					console.log("Begin Recording")
 					isRecording = true;
 					var eventJSON = eventGenerator.setSpeechRecognizer(onSession = onSession, dialogRequestId = dialogRequestId)
@@ -548,6 +542,14 @@ async function Buffer_ButtonEvent(command) {
 			}
 			break;
 	}
+}
+
+function error_record() {
+	ioctl.reset()
+	setTimeout(async() => {
+		//error record
+		await ioctl.Transmit(USER_EVENT, ERROR_RECORD)
+	}, 1500);
 }
 
 function reset_micarray() {
@@ -618,8 +620,8 @@ async function Buffer_UserEvent(command) {
 			ioctl.Transmit(USER_EVENT, VOLUME_MUTE)
 			console.log('muted');
 			break;
-		case RECORD_ERROR:
-			await ioctl.Transmit(USER_EVENT, RECORD_ERROR);
+		case ERROR_RECORD:
+			await ioctl.Transmit(USER_EVENT, ERROR_RECORD);
 			console.log('record error!!!');
 			break;
 		case BLE_ON:

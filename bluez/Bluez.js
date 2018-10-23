@@ -49,14 +49,14 @@ class Bluez extends EventEmitter {
                         ignore_status_signal = true
                         this.service.getInterface(match[0], 'org.freedesktop.DBus.Properties', (err, notification) => {
                             notification.on('PropertiesChanged', async(signal, status) => {
-                                if(status[0][0] == 'Status') {
-                                    var state = status[0][1][1][0]
-                                    this.emit('update state', state)
-                                }
-                                else if(status[1] != undefined) {
+                                if(status[1] != undefined) {
                                     if(status[1][0] == 'Status') {
                                         this.emit('update state', status[1][1][1][0])
                                     }
+                                }
+                                else if(status[0][0] == 'Status') {
+                                    var state = status[0][1][1][0]
+                                    this.emit('update state', state)
                                 }
                             })
                         })
