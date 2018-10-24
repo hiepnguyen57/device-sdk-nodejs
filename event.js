@@ -64,4 +64,34 @@ var setSpeechRecognizer = function( onSession, dialogRequestId=null, rawSpeech="
   }
 }
 
+var setSpeechSynthesizerSpeechFinished = function( onSession=false, dialogRequestId=null, rawSpeech="", token="hai") {
+  var messageId = messageGuidGenerator()
+
+  if (dialogRequestId) {
+    var dialogRequestId2 = dialogRequestId
+  }
+  else {
+    var dialogRequestId2 = dialogGuidGenerator()
+  }
+
+  console.log("messageId is " + messageId)
+
+  return output = {
+    "event": {
+      "header":{
+        "namespace": "SpeechSynthesizer",
+        "name": "SpeechFinished",
+        "rawSpeech": "",
+        "messageId": messageId,
+        "dialogRequestId": dialogRequestId2,
+        "onSession":onSession
+      },
+      "speechFinishedPayload": {
+        "token": token
+      }
+    }
+  }
+}
+
 exports.setSpeechRecognizer       = setSpeechRecognizer
+exports.setSpeechSynthesizerSpeechFinished = setSpeechSynthesizerSpeechFinished

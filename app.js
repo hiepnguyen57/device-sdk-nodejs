@@ -103,6 +103,7 @@ var recognizeStream;
 var isRecording = false;
 var isBluePlaying = false;
 var isBlueResume = false;
+var isPlaystreamPlaying = false;
 
 var music_manager = require('./music_player').getMusicManager()
 const bluetooth_discoverable = require('./bluetooth').bluetooth_discoverable
@@ -113,6 +114,9 @@ var bluez_event = require('./bluetooth').bluez_event
 var bluetooth = require('./bluetooth').bluetooth
 var bluealsa_aplay_connect = require('./bluetooth').bluealsa_aplay_connect
 var bluealsa_aplay_disconnect = require('./bluetooth').bluealsa_aplay_disconnect
+var EventEmitter = require('events').EventEmitter
+var ExpectSpeechEvent = new EventEmitter()
+var backupUrl = ''
 
 function exec_command(input) {
     pjsua.stdin.write(`${input}\n`);
@@ -252,6 +256,7 @@ function playStream(serverStream) {
 
 	console.log('playStream via url');
 	serverStream.on('data', (url) => {
+		console.log('url: ' + url)
 		var https = url.substring(0, 5)
 		if(https == 'https')
 		{
@@ -264,20 +269,36 @@ function playStream(serverStream) {
 			})
 		}
 		else if(https == '/file') {
+			isPlaystreamPlaying = true
 			var http_url = 'http://chatbot.iviet.com' + url
 			console.log('http link: ' + http_url);
 			//play http mp3 using mpg123
-			exec(`${current_path}/playurl ${http_url}`).on('exit', async(err) => {
-				if(err) {
-					console.log('can not load http link');
-				}
+			exec(`${current_path}/playurl ${http_url}`).on('exit', async() => {
 				if(musicResume === true) {
 					music_manager.eventsHandler(events.Resume)
 				}
+				isPlaystreamPlaying = false
+				ExpectSpeechEvent.emit('playbackup')
 			})
+		}
+		else if(https == 'lastR') {
+            // Send the SpeechFinished event
+            console.log('This is lastResponseItem');
+            var eventJSON = eventGenerator.setSpeechSynthesizerSpeechFinished();
+            eventJSON['sampleRate'] = 16000
+            var responceStream = client.createStream(eventJSON)
 		}
 	})
 }
+
+ExpectSpeechEvent.on('playbackup', async() => {
+	if(backupUrl != '') {
+		console.log('backupUrl: ' + backupUrl);
+		exec(`${current_path}/playurl ${backupUrl}`).on('exit', async() => {
+			backupUrl = ''
+		})
+	}
+})
 /**
  * Receiving directive and streaming source from server to this client after streamed audio recording to server.
  *
@@ -319,7 +340,6 @@ client.on("stream", async (serverStream, directive) => {
 	 */
 	if (directive.header.namespace == "AudioPlayer" && directive.header.name == "Play") {
 		const url = directive.payload.audioItem.stream.url;
-		console.log("Playing song at url: " + JSON.stringify(directive.payload));
 		await webPlayNewSong(serverStream, url)
 		return
 	}
@@ -420,11 +440,47 @@ client.on("stream", async (serverStream, directive) => {
 	}
 
 	/* PUT this at last to avoid earlier matching */
-	if ((directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "ExpectSpeech")
-		|| (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Speak")) {
+	if (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Silent") {
+        var eventJSON = eventGenerator.setSpeechSynthesizerSpeechFinished();
+        eventJSON['sampleRate'] = 16000
+        var responceStream = client.createStream(eventJSON)
+	}
+	if(directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Speak") {
 			console.log("SpeechSynthesizer only Playing Stream below")
 			playStream(serverStream);
 		return
+	}
+
+	if (directive.header.namespace == "SpeechRecognizer" && directive.header.name == "ExpectSpeech") {
+		console.log('event expectspeech');
+		onSession = true;
+		dialogRequestId = directive.header.dialogRequestId;
+		lastInitiator = directive.payload.initiator;
+
+		serverStream.on('data', (url) => {
+			console.log('url: ' + url)
+			var https = url.substring(0, 5)
+			if(https == '/file') {
+				var http_url = 'http://chatbot.iviet.com' + url
+				console.log('http link: ' + http_url);
+				console.log('isPlaystreamPlaying: ' + isPlaystreamPlaying);
+				if(isPlaystreamPlaying === true) {
+					backupUrl = http_url
+				}
+				else {
+					exec(`${current_path}/playurl ${http_url}`)
+				}
+			}
+			else if(https == 'lastR') {
+        	    // Send the SpeechFinished event
+        	    console.log('This is lastResponseItem');
+        	    var eventJSON = eventGenerator.setSpeechSynthesizerSpeechFinished();
+        	    eventJSON['sampleRate'] = 16000
+        	    var responceStream = client.createStream(eventJSON)
+			}
+  		//playStream(serverStream)
+		})
+
 	}
 });
 
