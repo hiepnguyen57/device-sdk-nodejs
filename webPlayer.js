@@ -72,7 +72,7 @@ class WebPlayer {
 
 	FadeInVol() {
 		if(this.volumeIsFaded == false) {
-			while(this.volume > 5) {
+			while(this.volume > 20) {
 				this.volume = this.volume - 5
 				this.mpg123.set_volume(this.volume)
 			}

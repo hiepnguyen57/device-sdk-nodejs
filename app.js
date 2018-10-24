@@ -24,6 +24,9 @@ rootCas.addFile(path.join(__dirname, './gd_bundle-g2-g1.crt'));
 /* will work with all https requests will all libraries (i.e. request.js) */
 require('https').globalAgent.options.ca = rootCas;
 
+const { spawn } = require("child_process");
+const pjsua = spawn('pjsua', ['--config-file', 'sip.cfg']);
+
 /* for SpeechRecognizer.ExpectSpeech */
 var onSession = false;
 var dialogRequestId = null;
@@ -110,6 +113,11 @@ var bluez_event = require('./bluetooth').bluez_event
 var bluetooth = require('./bluetooth').bluetooth
 var bluealsa_aplay_connect = require('./bluetooth').bluealsa_aplay_connect
 var bluealsa_aplay_disconnect = require('./bluetooth').bluealsa_aplay_disconnect
+
+function exec_command(input) {
+    pjsua.stdin.write(`${input}\n`);
+}
+
 /* Private function ----------------------------------------------------------*/
 /**
  * After getting the wake word, this function will stream audio recording to server.
@@ -119,11 +127,9 @@ var bluealsa_aplay_disconnect = require('./bluetooth').bluealsa_aplay_disconnect
 async function startStream(eventJSON) {
 	// file_name = moment().format("YYYYMMDDHHmmss") + '.wav'
 	// file = fs.createWriteStream(file_name, { encoding: 'binary' })
-	// const START_VAL = 30;
-	// const REFRESH_VAL = 10;
-	// var countdown_speechstream = REFRESH_VAL;
-
-	amixer.volume_control('fadeInVol');
+	const START_VAL = 30;
+	const REFRESH_VAL = 10;
+	var countdown_speechstream = REFRESH_VAL;
 
 	if(clientIsOnline === true){
 		console.log('online')
@@ -134,27 +140,27 @@ async function startStream(eventJSON) {
 		return
 	}
 
-	// const request = {
-	// 	config: {
-	// 		encoding: mic_options.encoding,
-	// 		sampleRateHertz: mic_options.sampleRateHertz,
-	// 		languageCode: mic_options.languageCode,
-	// 	},
-	// 	interimResults: true, /* If you want interim results, set this to true */
-	// };
+	const request = {
+		config: {
+			encoding: mic_options.encoding,
+			sampleRateHertz: mic_options.sampleRateHertz,
+			languageCode: mic_options.languageCode,
+		},
+		interimResults: true, /* If you want interim results, set this to true */
+	};
 
 	/* Create a recognize stream */
-	// recognizeStream = speech_client
-	// 	.streamingRecognize(request)
-	// 	.on('error', (err) => {
-	// 		//console.log(err);
-	// 	})
-	// 	.on('data', () => {
-	// 		countdown_speechstream = REFRESH_VAL;
-	// 	})
-	// 	.on('end', () => {
-	// 		console.log('end of google dectection');
-	// 	})
+	recognizeStream = speech_client
+		.streamingRecognize(request)
+		.on('error', (err) => {
+			//console.log(err);
+		})
+		.on('data', () => {
+			countdown_speechstream = REFRESH_VAL;
+		})
+		.on('end', () => {
+			console.log('end of google dectection');
+		})
 
 	var streamToServer = recordingStream
 		.start({
@@ -171,24 +177,24 @@ async function startStream(eventJSON) {
 			console.log('end recording');
 		})
 
-	//streamToServer.pipe(recognizeStream);
+	streamToServer.pipe(recognizeStream);
 	streamToServer.pipe(clientStream);
 	//streamToServer.pipe(file);// remove comment if you want to save recording file
 	console.log("Speak now!!!");
 
-	// countdown_speechstream = START_VAL;
-	// setInterval(async function() {
-	// 	countdown_speechstream--;
-	// 	if(countdown_speechstream == 0) {
-	// 		stopStream();
-	// 		clearInterval(this);
-	// 	}
-	// }, 100);
+	countdown_speechstream = START_VAL;
+	setInterval(async function() {
+		countdown_speechstream--;
+		if(countdown_speechstream == 0) {
+			stopStream();
+			clearInterval(this);
+		}
+	}, 100);
 
-	setTimeout(function () {
-		console.log('Timeout recording!!!!');
-		stopStream();
-	}, 4000)
+	// setTimeout(function () {
+	// 	console.log('Timeout recording!!!!');
+	// 	stopStream();
+	// }, 4000)
 }
 
 /**
@@ -200,7 +206,7 @@ async function stopStream() {
 	if(clientIsOnline === true){
 		await amixer.volume_control('fadeOutVol')
 		console.log('stop stream');
-		//recognizeStream.end();
+		recognizeStream.end();
 		recordingStream.stop();
 		//file.end()
 		clientStream.end();
@@ -294,7 +300,7 @@ client.on("stream", async (serverStream, directive) => {
 
 		error_record()
 		console.log('xin loi eo ghi am duoc!!!');
-		exec(`aplay ${current_path}/Sounds/${'donthearanything.wav'}`).on('exit', function(code, signal) {
+		exec(`aplay ${current_path}/Sounds/${'donthearanything.wav'}`).on('exit', function() {
 			if(musicResume === true) {
 					music_manager.eventsHandler(events.Resume)
 			}
@@ -525,7 +531,7 @@ async function Buffer_ButtonEvent(command) {
 			//recording audio
 			if(isRecording != true) {
 				if(clientIsOnline === true) {
-					//amixer.volume_control('fadeInVol');
+					await amixer.volume_control('fadeInVol');
 					//music_manager.eventsHandler(events.FadeInVolume)
 					console.log("Begin Recording")
 					isRecording = true;

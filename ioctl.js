@@ -44,18 +44,27 @@ function Transmit(target, command, value) {
 }
 
 function mute() {
-	//Select Page 0
+	//Select Page 1
 	data[0] = 0x00
-	data[1] = 0x00
+	data[1] = 0x01
 	i2c1_forceAccess.i2cWriteSync(CODEC_ADDR, 0x02, data, function(err) {
 		if (err) {
 			reset()
 			throw err;
 		}
 	})
-	// Mute LDAC/RDAC
-	data[0] = 0x40
-	data[1] = 0x0C
+	// LOL driver is muted
+	data[0] = 0x12
+	data[1] = 0x40
+	i2c1_forceAccess.i2cWriteSync(CODEC_ADDR, 0x02, data, function(err) {
+		if (err) {
+			reset()
+			throw err;
+		}
+	})
+	// LOR driver is muted
+	data[0] = 0x13
+	data[1] = 0x40
 	i2c1_forceAccess.i2cWriteSync(CODEC_ADDR, 0x02, data, function(err) {
 		if (err) {
 			reset()
@@ -65,8 +74,17 @@ function mute() {
 }
 
 function unmute() {
-	//Select Page 0
+	//Select Page 1
 	data[0] = 0x00
+	data[1] = 0x01
+	i2c1_forceAccess.i2cWriteSync(CODEC_ADDR, 0x02, data, function(err) {
+		if (err) {
+			reset()
+			throw err;
+		}
+	})
+	// LOL driver is not muted
+	data[0] = 0x12
 	data[1] = 0x00
 	i2c1_forceAccess.i2cWriteSync(CODEC_ADDR, 0x02, data, function(err) {
 		if (err) {
@@ -74,8 +92,8 @@ function unmute() {
 			throw err;
 		}
 	})
-	// Unmute LDAC/RDAC
-	data[0] = 0x40
+	// LOR driver is not muted
+	data[0] = 0x13
 	data[1] = 0x00
 	i2c1_forceAccess.i2cWriteSync(CODEC_ADDR, 0x02, data, function(err) {
 		if (err) {

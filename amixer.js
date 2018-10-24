@@ -35,13 +35,6 @@ function volume_control(input) {
 					if (appvol <= offset_min_volume)
 						appvol = 0;
 				}
-				// if (appvol < offset_min_volume) {
-				// 	appvol = 0;
-				// 	// exec(`amixer -c ${AUDIO_CARD} set PCM 0%`).on('exit', async() =>{
-				// 	// 	console.log('volume level: ' + appvol);
-				// 	// 	resolve()
-				// 	// })
-				// }
 				exec(`amixer -c ${AUDIO_CARD} set PCM ${appvol}%`).on('exit', async() => {
 					//console.log('volume level: ' + appvol);
 					resolve(appvol)
@@ -63,7 +56,7 @@ function volume_control(input) {
 
 				volBeforeFading = fadeinvol
 				while(fadeinvol > 30) {
-					fadeinvol = fadeinvol - 5
+					fadeinvol = fadeinvol - 20
 					exec(`amixer -c ${AUDIO_CARD} set PCM ${fadeinvol}%`)
 				}
 				resolve()
@@ -74,7 +67,7 @@ function volume_control(input) {
 				var fadeoutvol = parseInt(stdout.slice(0, stdout.length - 1))
 
 				while(fadeoutvol < volBeforeFading) {
-					fadeoutvol = fadeoutvol + 5
+					fadeoutvol = fadeoutvol + 20
 					exec(`amixer -c ${AUDIO_CARD} set PCM ${fadeoutvol}%`)
 				}
 				resolve()
