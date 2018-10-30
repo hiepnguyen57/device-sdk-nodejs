@@ -45,9 +45,10 @@ function volume_control(input) {
 				resolve(parseInt(stdout.slice(0, stdout.length - 1)));
 				break;
 			case 'setvolume':
-				exec(`amixer -c ${AUDIO_CARD} set PCM ${vol}%`);
-				console.log('set volume as ' + vol);
-				resolve();
+				exec(`amixer -c ${AUDIO_CARD} set PCM ${vol}%`).on('exit', async() => {
+					console.log('set volume as ' + vol);
+					resolve();
+				})
 				break;
 
 			case 'fadeInVol':
