@@ -3,7 +3,7 @@ const exec_promise = util.promisify(require('child_process').exec);
 const exec = require("child_process").exec;
 const AUDIO_CARD = 0 //TLV320AIC plughw:0,0
 const offset_min_volume = 20;
-//var blueVolBeforeFading
+
 var volBeforeFading
 
 function volume_control(input) {

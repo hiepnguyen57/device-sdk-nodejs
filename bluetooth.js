@@ -18,8 +18,8 @@ var bluealsa_aplay_exec
 var device = null
 var MacAddress = ''
 
-const VA_BLE_CONNECTED = 'VA_bluetooth_connected.wav';
-const BLE_CONNECTED = 'bluetooth_connected_322896.wav';
+// const VA_BLE_CONNECTED = 'VA_bluetooth_connected.wav';
+// const BLE_CONNECTED = 'bluetooth_connected_322896.wav';
 const BLE_DISCONNECTED = 'bluetooth_disconnected_322894.wav';
 var volBeforeFading
 
@@ -73,31 +73,6 @@ async function bluez_handler() {
 		await exec(`aplay ${current_path}/Sounds/${BLE_DISCONNECTED}`)
 		console.log('device disconnected');
 	})
-
-	// bluetooth.on('update status', async(obj) => {
-	// 	obj
-	// 	service.getInterface(obj, 'org.freedesktop.DBus.Properties', (err, notification) => {
-	// 		if(err) {
-	// 			console.error(err)
-	// 		}
-
-	// 		notification.on('PropertiesChanged', async(signal, status) => {
-	// 			if (status[0][0] == 'Status') {
-	// 				console.log('signal: ' + signal);
-	// 				console.log('status: ' + status);
-	// 				var state = status[0][1][1][0]
-	// 				console.log('update state: ' + state);
-	// 				// if(state == "playing") {
-	// 				// 	await bluealsa_aplay_connect()
-	// 				// }
-	// 				// else {
-	// 				// 	await bluealsa_aplay_disconnect()
-	// 				// }
-	// 				// bluez_event.emit('state', state)
-	// 			}
-	// 		})
-	// 	})
-	// })
 }
 
 async function bluetooth_init() {

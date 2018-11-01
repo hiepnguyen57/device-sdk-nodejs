@@ -112,6 +112,8 @@ var isRecording = false;
 var isBluePlaying = false;
 var isBlueResume = false;
 var isPlaystreamPlaying = false;
+var musicPlayStreamResume = false
+
 var volumebackup
 
 var music_manager = require('./music_player').getMusicManager()
@@ -221,7 +223,7 @@ async function stopStream() {
 		recordingStream.stop();
 		//file.end()
 		clientStream.end();
-
+		console.time('measure-received-url')
 		//send end of sentence to mic-array
 		Buffer_UserEvent(WAKE_WORD_STOP)
 		//music_manager.eventsHandler(events.FadeOutVolume)
@@ -246,6 +248,7 @@ client.on("error", (error) => {
 async function webPlayNewSong(serverStream, url)
 {
 	serverStream.on('data', (url) =>{
+		console.timeEnd('measure-received-url')
 		var intro_url = 'http://chatbot.iviet.com' + url
 		console.log(intro_url);
 		exec(`${current_path}/playurl ${intro_url}`)
@@ -275,32 +278,32 @@ function playurlStream(input) {
 }
 
 function playStream(serverStream) {
-	var musicResume = false
+	musicPlayStreamResume = false
 	if(music_manager.isMusicPlaying == true) {
 		music_manager.eventsHandler(events.Pause)
-		musicResume = true
+		musicPlayStreamResume = true
 	}
 
 	console.log('playStream via url');
 	serverStream.on('data', (url) => {
 		var https = url.substring(0, 5)
-		// if(https == 'lastR') {
-		// 	// Send the SpeechFinished event
-		// 	//console.log('This is lastResponseItem');
-		// 	var eventJSON = eventGenerator.setSpeechSynthesizerSpeechFinished();
-		// 	eventJSON['sampleRate'] = 16000
-		// 	var responceStream = client.createStream(eventJSON)
-		// }
-		// else {
+		if(https == 'lastR') {
+			// Send the SpeechFinished event
+			console.log('This is lastResponseItem');
+			var eventJSON = eventGenerator.setSpeechSynthesizerSpeechFinished();
+			eventJSON['sampleRate'] = 16000
+			var responceStream = client.createStream(eventJSON)
+		}
+		else {
+			console.timeEnd('measure-received-url')
 			console.log('url: ' + url)
 			linkurl[urlcount] = url
 			urlcount++
 			if(urlcount < 2) {
 				if(https == 'https') {
 					//console.log(url);
-					//play https mp3 using mpg123
 					exec(`${current_path}/mpg123_https.sh ${linkurl[0]}`).on('exit', async() => {
-						if(musicResume === true) {
+						if(musicPlayStreamResume === true) {
 							music_manager.eventsHandler(events.Resume)
 						}
 					})
@@ -308,46 +311,64 @@ function playStream(serverStream) {
 				else {
 					isPlaystreamPlaying = true
 					var http_url = 'http://chatbot.iviet.com' + linkurl[0]
-					//console.log('http link: ' + http_url);
-					//play http mp3 using mpg123
 					exec(`${current_path}/playurl ${http_url}`).on('exit', async() => {
-						if(musicResume === true) {
-							music_manager.eventsHandler(events.Resume)
+						if(urlcount < 2) {
+							if(musicPlayStreamResume === true) {
+								music_manager.eventsHandler(events.Resume)
+							}
+							urlcount = 0
 						}
-						isPlaystreamPlaying = false
-						ExpectSpeechEvent.emit('playbackup')
-					})
-				}
-				//playurlStream(linkurl[0])
-			}
-		//}
-	})
+						else {
+							//play linkurl in array
+							ExpectSpeechEvent.emit('playlinkurl')
+						}
 
-	serverStream.on('end', async() => {
-		console.log('this is the end of playstream')
-		console.log('urlcount: ' + urlcount);
-		if(urlcount > 1) {
-			for(var i=1; i < urlcount; i++) {
-				if(linkurl[i] != '') {
-					await playurlStream(linkurl[i])
-					linkurl[i] = ''
+						//todo: below used to expect speech event
+						isPlaystreamPlaying = false
+						if(backupUrl != '') {
+							ExpectSpeechEvent.emit('expectspeech')
+						}
+					})
 				}
 			}
 		}
-		urlcount = 0
-		// Send the SpeechFinished event
-		var eventJSON = eventGenerator.setSpeechSynthesizerSpeechFinished();
-		eventJSON['sampleRate'] = 16000
-		var responceStream = client.createStream(eventJSON)
 	})
+
+	// serverStream.on('end', async() => {
+	// 	console.log('this is the end of playstream')
+	// 	console.log('urlcount: ' + urlcount);
+	// 	if(urlcount > 1) {
+	// 		for(var i=1; i < urlcount; i++) {
+	// 			if(linkurl[i] != '') {
+	// 				await playurlStream(linkurl[i])
+	// 				linkurl[i] = ''
+	// 			}
+	// 		}
+	// 		if(musicResume === true) {
+	// 			music_manager.eventsHandler(events.Resume)
+	// 		}
+	// 	}
+	// 	urlcount = 0
+	// })
 }
 
-ExpectSpeechEvent.on('playbackup', async() => {
-	if(backupUrl != '') {
-		console.log('backupUrl: ' + backupUrl);
-		exec(`${current_path}/playurl ${backupUrl}`).on('exit', async() => {
-			backupUrl = ''
-		})
+ExpectSpeechEvent.on('expectspeech', async() => {
+	console.log('backupUrl: ' + backupUrl);
+	exec(`${current_path}/playurl ${backupUrl}`).on('exit', async() => {
+		backupUrl = ''
+	})
+})
+
+ExpectSpeechEvent.on('playlinkurl', async() => {
+	for(var i=1; i < urlcount; i++) {
+		if(linkurl[i] != '') {
+			await playurlStream(linkurl[i])
+			linkurl[i] = ''
+		}
+	}
+	urlcount = 0
+	if(musicPlayStreamResume === true) {
+		music_manager.eventsHandler(events.Resume)
 	}
 })
 /**
@@ -521,7 +542,7 @@ client.on("stream", async (serverStream, directive) => {
 				console.log('http link: ' + http_url);
 				if(isPlaystreamPlaying === true) {
 					backupUrl = http_url
-					console.log('need to play audio');
+					//console.log('need to play audio');
 				}
 				else {
 					exec(`${current_path}/playurl ${http_url}`)
