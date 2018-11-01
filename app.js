@@ -306,6 +306,8 @@ function playStream(serverStream) {
 						if(musicPlayStreamResume === true) {
 							music_manager.eventsHandler(events.Resume)
 						}
+						//reset flags
+						urlcount = 0
 					})
 				}
 				else {
@@ -316,6 +318,7 @@ function playStream(serverStream) {
 							if(musicPlayStreamResume === true) {
 								music_manager.eventsHandler(events.Resume)
 							}
+							//reset flags
 							urlcount = 0
 						}
 						else {
@@ -366,7 +369,10 @@ ExpectSpeechEvent.on('playlinkurl', async() => {
 			linkurl[i] = ''
 		}
 	}
+	//reset flags
 	urlcount = 0
+
+	//resume music
 	if(musicPlayStreamResume === true) {
 		music_manager.eventsHandler(events.Resume)
 	}
