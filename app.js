@@ -125,8 +125,7 @@ var bluez_event = require('./bluetooth').bluez_event
 var bluetooth = require('./bluetooth').bluetooth
 var bluealsa_aplay_connect = require('./bluetooth').bluealsa_aplay_connect
 var bluealsa_aplay_disconnect = require('./bluetooth').bluealsa_aplay_disconnect
-var EventEmitter = require('events').EventEmitter
-var ExpectSpeechEvent = new EventEmitter()
+
 var backupUrl = ''
 var urlcount = 0
 var linkurl = []
@@ -361,28 +360,6 @@ async function playurlStream() {
 	}
 }
 
-// ExpectSpeechEvent.on('expectspeech', async() => {
-// 	console.log('backupUrl: ' + backupUrl);
-// 	exec(`${current_path}/playurl ${backupUrl}`).on('exit', async() => {
-// 		backupUrl = ''
-// 	})
-// })
-
-// ExpectSpeechEvent.on('playlinkurl', async() => {
-// 	for(var i=1; i < urlcount; i++) {
-// 		if(linkurl[i] != '') {
-// 			await playurlStream(linkurl[i])
-// 			linkurl[i] = ''
-// 		}
-// 	}
-// 	//reset flags
-// 	urlcount = 0
-
-// 	//resume music
-// 	if(musicPlayStreamResume === true) {
-// 		music_manager.eventsHandler(events.Resume)
-// 	}
-// })
 /**
  * Receiving directive and streaming source from server to this client after streamed audio recording to server.
  *
@@ -541,7 +518,6 @@ client.on("stream", async (serverStream, directive) => {
 	}
 
 	if (directive.header.namespace == "SpeechRecognizer" && directive.header.name == "ExpectSpeech") {
-		//console.log('event expectspeech');
 		onSession = true;
 		dialogRequestId = directive.header.dialogRequestId;
 		lastInitiator = directive.payload.initiator;
@@ -554,7 +530,7 @@ client.on("stream", async (serverStream, directive) => {
 				console.log('http link: ' + http_url);
 				if(isPlaystreamPlaying === true) {
 					backupUrl = http_url
-					//console.log('need to play audio');
+					//console.log('we have a link url which need to play');
 				}
 				else {
 					exec(`${current_path}/playurl ${http_url}`)

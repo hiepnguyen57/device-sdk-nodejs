@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# play https mp3 using mpg123
+# play https url using mpg123
 
 function https_url_p ()
 {

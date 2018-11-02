@@ -1,3 +1,5 @@
+
+/* My Event use to test led ring effect*/
 const I2C_ADDRESS = 0x68;
 const LED_RING = 0x00
 const MIC_ARRAY = 0x01
