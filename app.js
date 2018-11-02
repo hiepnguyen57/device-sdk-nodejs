@@ -257,7 +257,7 @@ async function webPlayNewSong(serverStream, url)
 	music_manager.eventsHandler(events.W_NewSong)
 }
 
-function playurlStream(input) {
+function playlinkurl(input) {
 	return new Promise(async resolve => {
 		var https = input.substring(0, 5)
 		if(https == 'https') {
@@ -323,49 +323,32 @@ function playStream(serverStream) {
 						}
 						else {
 							//play linkurl in array
-							ExpectSpeechEvent.emit('playlinkurl')
+							playurlStream()
 						}
 
 						//todo: below used to expect speech event
 						isPlaystreamPlaying = false
 						if(backupUrl != '') {
-							ExpectSpeechEvent.emit('expectspeech')
+							playExpectSpeech()
 						}
 					})
 				}
 			}
 		}
 	})
-
-	// serverStream.on('end', async() => {
-	// 	console.log('this is the end of playstream')
-	// 	console.log('urlcount: ' + urlcount);
-	// 	if(urlcount > 1) {
-	// 		for(var i=1; i < urlcount; i++) {
-	// 			if(linkurl[i] != '') {
-	// 				await playurlStream(linkurl[i])
-	// 				linkurl[i] = ''
-	// 			}
-	// 		}
-	// 		if(musicResume === true) {
-	// 			music_manager.eventsHandler(events.Resume)
-	// 		}
-	// 	}
-	// 	urlcount = 0
-	// })
 }
 
-ExpectSpeechEvent.on('expectspeech', async() => {
+async function playExpectSpeech() {
 	console.log('backupUrl: ' + backupUrl);
 	exec(`${current_path}/playurl ${backupUrl}`).on('exit', async() => {
 		backupUrl = ''
 	})
-})
+}
 
-ExpectSpeechEvent.on('playlinkurl', async() => {
+async function playurlStream() {
 	for(var i=1; i < urlcount; i++) {
 		if(linkurl[i] != '') {
-			await playurlStream(linkurl[i])
+			await playlinkurl(linkurl[i])
 			linkurl[i] = ''
 		}
 	}
@@ -376,7 +359,30 @@ ExpectSpeechEvent.on('playlinkurl', async() => {
 	if(musicPlayStreamResume === true) {
 		music_manager.eventsHandler(events.Resume)
 	}
-})
+}
+
+// ExpectSpeechEvent.on('expectspeech', async() => {
+// 	console.log('backupUrl: ' + backupUrl);
+// 	exec(`${current_path}/playurl ${backupUrl}`).on('exit', async() => {
+// 		backupUrl = ''
+// 	})
+// })
+
+// ExpectSpeechEvent.on('playlinkurl', async() => {
+// 	for(var i=1; i < urlcount; i++) {
+// 		if(linkurl[i] != '') {
+// 			await playurlStream(linkurl[i])
+// 			linkurl[i] = ''
+// 		}
+// 	}
+// 	//reset flags
+// 	urlcount = 0
+
+// 	//resume music
+// 	if(musicPlayStreamResume === true) {
+// 		music_manager.eventsHandler(events.Resume)
+// 	}
+// })
 /**
  * Receiving directive and streaming source from server to this client after streamed audio recording to server.
  *
