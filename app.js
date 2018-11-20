@@ -1,20 +1,24 @@
 'use strict';
 /* Library -------------------------------------------------------------------*/
-const path = require('path');
-const config = require('./config.json');
-const util = require('util');
-const BinaryClient = require('binaryjs').BinaryClient;
-const eventGenerator = require('./event');
-const lame = require('lame');
-const Speaker = require('speaker');
-const event = require('events');
-const recordingStream = require('node-record-lpcm16');
-const moment = require('moment');
-const exec_sync = util.promisify(require('child_process').exec);
-const speech = require('@google-cloud/speech');
-const {spawn} = require("child_process");
-const pjsua = spawn('pjsua', ['--config-file', '/home/root/music-player/sip.cfg']);
-var rootCas = require('ssl-root-cas').create();
+const BinaryClient      = require('binaryjs').BinaryClient;
+const eventGenerator    = require('./event');
+const Speaker           = require('speaker');
+const recordingStream   = require('node-record-lpcm16');
+const speech            = require('@google-cloud/speech');
+const {spawn}           = require("child_process");
+const pjsua             = spawn('pjsua', ['--config-file', '/home/root/music-player/sip.cfg']);
+var   rootCas           = require('ssl-root-cas').create();
+var   sem               = require('semaphore')(1);
+const grpc              = require('grpc');
+const lame              = require('lame');
+const util              = require('util');
+const config            = require('./config.json');
+const uuidv1            = require('uuid/v1');
+const wav               = require('wav');
+const Stream            = require('stream');
+const path              = require('path');
+const exec_sync         = util.promisify(require('child_process').exec);
+const moment            = require('moment');
 
 /* Private macro -------------------------------------------------------------*/
 const I2C_ADDRESS = 0x68;
@@ -63,6 +67,11 @@ require('https').globalAgent.options.ca = rootCas;
 var onSession = false;
 var dialogRequestId = null;
 var lastInitiator = null;
+
+var reminder_lists = [];
+
+var grpcBackendTTS = grpc.load('./backend_TTS.proto').tts_server  // this takes long time
+var grpcBackendTTSClient = new grpcBackendTTS.Text2Speech(util.format('%s:50051', config.IP_TTS_YEN), grpc.credentials.createInsecure());
 
 var mic_options = {
     encoding: 'LINEAR16',
@@ -333,6 +342,129 @@ function playStream(serverStream) {
 }
 
 /**
+ * TTS processing.
+ *
+ * @param {} None.
+ */
+function olliSpeak(text) {
+    return new Promise(resolve => {
+        var ret_names = [];
+        var ttsRequest = {"text": text}
+        var call = grpcBackendTTSClient.Synthesize(ttsRequest);
+        var count = 0;
+        var end_of_sentence;
+        var fileName;
+        call.on('data', (ttsResponse) => {
+            end_of_sentence = 'begin';
+            fileName = uuidv1() + '.mp3';
+            // Initiate the source
+            var bufferStream = new Stream.PassThrough()
+            // convert AudioStream into a readable stream
+            bufferStream.end(ttsResponse.audio)
+            var wstream = fs.createWriteStream(path.resolve('reminder_files/' + fileName));
+
+            /* End of a short sentence */
+            wstream.on('finish', function () {
+                ret_names.push(fileName);
+                if (end_of_sentence == 'end')
+                {
+                    resolve(ret_names);
+                }
+                end_of_sentence = 'finish';
+            });
+
+            // start reading the WAV file from the input
+            var reader = new wav.Reader();
+            bufferStream.pipe(reader);
+            // we have to wait for the "format" event before we can start encoding
+            reader.on('format', (format) => {
+                //console.error('WAV format: %j', format);
+                var encoder = new lame.Encoder(format);
+                reader.pipe(encoder).pipe(wstream);
+            });
+            count = count + 1;
+        });
+
+        /* End of sentence */
+        call.on('end', () => {
+            if (end_of_sentence == 'finish')
+            {
+                resolve(ret_names);
+            }
+            end_of_sentence = 'end';
+        });
+
+        call.on('error', (error) => {
+            // TODO: should speak "OLLI can't speak."
+            console.error('olliSpeak Error: ', error);
+        });
+    });
+}
+
+/**
+ * Queue loop that process reminder queue.
+ *
+ * @param {} None.
+ */
+async function get_reminder_queue() {
+    function _getqueue() {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                if (reminder_lists.length > 0) {
+                    sem.take(async function() {
+                        for (var j in reminder_lists) {
+                            const reminder = reminder_lists[j];
+                            const reminder_date = new Date(reminder.time);
+                            const local_time = new Date((new Date).getTime() + (moment().utcOffset() * 60 * 1000));
+
+                            if (reminder_date.getFullYear() == local_time.getUTCFullYear() &&
+                                reminder_date.getMonth() == local_time.getUTCMonth() &&
+                                reminder_date.getDate() == local_time.getUTCDate() &&
+                                reminder_date.getHours() == local_time.getUTCHours() &&
+                                reminder_date.getMinutes() <= local_time.getUTCMinutes())
+                            {
+                                console.log(`${reminder.event}: ${reminder_date}`);
+                                console.log(reminder.reminder);
+                                for (var i in reminder.files) {
+                                    console.log(reminder.files[i]);
+                                    await exec_sync(`mpg123 reminder_files/${reminder.files[i]}`);
+                                    await exec_sync(`rm reminder_files/${reminder.files[i]}`);
+                                }
+                                reminder_lists.splice(j, 1);
+                                break;
+                            }
+                        }
+                        sem.leave();
+                    });
+                }
+                resolve();
+            }, 5000);
+        });
+    }
+
+    while (true) {
+        await _getqueue();
+    }
+}
+
+/**
+ * Push reminders to reminder list.
+ *
+ * @param {object} directive : using directive to get more reminder information .
+ */
+async function push_to_reminder_lists(reminders_json) {
+    return new Promise(async resolve => {
+        const reminder_files = await olliSpeak(reminders_json.response.items[1].reminderCard.reminder)
+        reminders_json.response.items[1].reminderCard.files = reminder_files;
+        sem.take(function() {
+            reminder_lists.push(reminders_json.response.items[1].reminderCard);
+            sem.leave();
+        });
+        resolve();
+    });
+}
+
+/**
  * Receiving directive and streaming source from server.
  *
  * @resource : event from server.
@@ -504,6 +636,13 @@ client.on("stream", async (serverStream, directive) => {
         setTimeout(() => {
             exec_command_pjsua(`sip:10015@35.240.201.210;transport=tcp`);
         }, 100);
+    }
+
+    /**
+     * Reminder.
+     */
+    if (directive.header.namespace == "Alerts" && directive.header.name == "SetAlert") {
+        push_to_reminder_lists(directive);
     }
 });
 
@@ -817,6 +956,7 @@ bluetooth.on('update state', async (state) => {
 async function main() {
     reset_micarray();
     get_audioqueue();
+    get_reminder_queue();
     exec(`/bin/bash /home/root/tlv320aic.sh`).on('exit', async () => {
         setTimeout(() => {
             exec(`aplay ${current_path}/Sounds/${'boot_sequence_intro_1.wav'}`).on('exit', async () => {
