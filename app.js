@@ -52,6 +52,10 @@ const COLOR_WHEEL = 0x35;
 const CLEAN_ALL = 0x36;
 const LED_START = 0x38;
 const LED_STOP = 0x39;
+const LED_BAT = 0x3A
+const LED_CHOP = 0x3B
+const LED_TAT = 0x3C
+const LED_CALLING = 0x3D
 
 const current_path = require('path').dirname(require.main.filename);
 
@@ -210,6 +214,8 @@ async function startStream(eventJSON) {
     //streamToServer.pipe(file);// remove comment if you want to save recording file
     console.log("Speak now!!!");
 
+    ioctl.Transmit(LED_RING, LED_CALLING, LED_STOP);
+
     countdown_speechstream = START_VAL;
     setInterval(async function () {
         countdown_speechstream--;
@@ -241,7 +247,7 @@ async function stopStream() {
         clientStream.end();
         console.time('measure-received-url')
         //send end of sentence to mic-array
-        Buffer_UserEvent(WAKE_WORD_STOP)
+        Buffer_UserEvent(LED_CHOP)
         //music_manager.eventsHandler(events.FadeOutVolume)
         isRecording = false
     }
@@ -282,7 +288,9 @@ async function get_audioqueue() {
                 if (AudioQueue.length > 0) {
                     var url;
                     url = AudioQueue.shift();
-                    await exec_sync(`wget ${url} -O - | mpg123 -`);
+                    console.log(`-->url: ${url}`)
+                    await exec_sync(`wget --no-check-certificate ${url} -O - | mpg123 -`);
+                    Buffer_UserEvent(LED_TAT);
                 }
                 resolve();
             }, 1);
@@ -351,47 +359,20 @@ function olliSpeak(text) {
         var ret_names = [];
         var ttsRequest = {"text": text}
         var call = grpcBackendTTSClient.Synthesize(ttsRequest);
-        var count = 0;
-        var end_of_sentence;
         var fileName;
         call.on('data', (ttsResponse) => {
-            end_of_sentence = 'begin';
-            fileName = uuidv1() + '.mp3';
-            // Initiate the source
+            fileName = uuidv1() + '.wav';
             var bufferStream = new Stream.PassThrough()
             // convert AudioStream into a readable stream
             bufferStream.end(ttsResponse.audio)
-            var wstream = fs.createWriteStream(path.resolve('reminder_files/' + fileName));
-
-            /* End of a short sentence */
-            wstream.on('finish', function () {
-                ret_names.push(fileName);
-                if (end_of_sentence == 'end')
-                {
-                    resolve(ret_names);
-                }
-                end_of_sentence = 'finish';
-            });
-
-            // start reading the WAV file from the input
-            var reader = new wav.Reader();
-            bufferStream.pipe(reader);
-            // we have to wait for the "format" event before we can start encoding
-            reader.on('format', (format) => {
-                //console.error('WAV format: %j', format);
-                var encoder = new lame.Encoder(format);
-                reader.pipe(encoder).pipe(wstream);
-            });
-            count = count + 1;
+            var wstream = fs.createWriteStream(path.resolve('files/' + fileName));
+            bufferStream.pipe(wstream);
+            ret_names.push(fileName);
         });
 
         /* End of sentence */
         call.on('end', () => {
-            if (end_of_sentence == 'finish')
-            {
-                resolve(ret_names);
-            }
-            end_of_sentence = 'end';
+            resolve(ret_names);
         });
 
         call.on('error', (error) => {
@@ -427,8 +408,8 @@ async function get_reminder_queue() {
                                 console.log(reminder.reminder);
                                 for (var i in reminder.files) {
                                     console.log(reminder.files[i]);
-                                    await exec_sync(`mpg123 reminder_files/${reminder.files[i]}`);
-                                    await exec_sync(`rm reminder_files/${reminder.files[i]}`);
+                                    await exec_sync(`aplay files/${reminder.files[i]}`);
+                                    await exec_sync(`rm files/${reminder.files[i]}`);
                                 }
                                 reminder_lists.splice(j, 1);
                                 break;
@@ -477,8 +458,10 @@ client.on("stream", async (serverStream, directive) => {
     console.log(`${directive.header.namespace} == ${directive.header.name} == ${directive.payload.format} \
 	== ${directive.card == null ? directive.card : directive.card.cardOutputSpeech}`)
 
+
     console.log('RAWSPEECH: ' + directive.header.rawSpeech)
     if (directive.header.name == "Recognize" && directive.payload.format == "AUDIO_L16_RATE_16000_CHANNELS_1") {
+        Buffer_UserEvent(LED_TAT);
         var musicResume = false
         if (music_manager.isMusicPlaying == true) {
             music_manager.eventsHandler(events.Pause)
@@ -495,6 +478,7 @@ client.on("stream", async (serverStream, directive) => {
     }
 
     if (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Empty") {
+        Buffer_UserEvent(LED_TAT);
         onSession = true;
         dialogRequestId = directive.header.dialogRequestId;
         lastInitiator = directive.payload.initiator;
@@ -514,6 +498,7 @@ client.on("stream", async (serverStream, directive) => {
      * Pause music.
      */
     if (directive.header.namespace == "PlaybackController" && directive.header.name == "PauseCommandIssued") {
+        Buffer_UserEvent(LED_TAT);
         console.log('Pause command');
         music_manager.eventsHandler(events.Pause)
         return
@@ -524,6 +509,7 @@ client.on("stream", async (serverStream, directive) => {
      */
     if (directive.header.namespace == "PlaybackController" && directive.header.name == "ResumeCommandIssued") {
         console.log('Resume Command');
+        Buffer_UserEvent(LED_TAT);
         music_manager.eventsHandler(events.Resume)
         return
     }
@@ -536,6 +522,7 @@ client.on("stream", async (serverStream, directive) => {
      * Volume adjust.
      */
     if (directive.header.namespace == "Speaker") {
+        Buffer_UserEvent(LED_TAT);
         if (directive.header.name == "AdjustVolume") {
             if (directive.payload.volume >= 0) {
                 Buffer_ButtonEvent(VOLUME_UP)
@@ -563,6 +550,7 @@ client.on("stream", async (serverStream, directive) => {
      * Opening bluetooth.
      */
     if (directive.header.namespace == "Bluetooth") {
+        Buffer_UserEvent(LED_TAT);
         var musicResume = false
         if (music_manager.isMusicPlaying == true) {
             music_manager.eventsHandler(events.Pause)
@@ -587,6 +575,7 @@ client.on("stream", async (serverStream, directive) => {
             })
         }
         else if (directive.header.name == "DisconnectDevice") {
+            Buffer_UserEvent(LED_TAT);
             Buffer_UserEvent(BLE_OFF)
             await bluetooth_discoverable('off')
 
@@ -606,6 +595,7 @@ client.on("stream", async (serverStream, directive) => {
 
     /* PUT this at last to avoid earlier matching */
     if (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Silent") {
+        Buffer_UserEvent(LED_TAT);
         if (music_manager.isMusicPlaying == true) {
             music_manager.eventsHandler(events.Pause)
         }
@@ -636,6 +626,7 @@ client.on("stream", async (serverStream, directive) => {
         setTimeout(() => {
             exec_command_pjsua(`sip:10015@35.240.201.210;transport=tcp`);
         }, 100);
+        Buffer_UserEvent(LED_CALLING);
     }
 
     /**
@@ -869,6 +860,23 @@ async function Buffer_UserEvent(command) {
         case CLIENT_ERROR:
             await ioctl.Transmit(USER_EVENT, CLIENT_ERROR)
             console.log('client error');
+            break;
+
+        case LED_BAT:
+            await ioctl.Transmit(LED_RING, LED_BAT)
+            console.log('wakeword begin')
+            break;
+        case LED_CHOP:
+            await ioctl.Transmit(LED_RING, LED_CHOP)
+            console.log('wakeword end')
+            break;
+        case LED_TAT:
+            await ioctl.Transmit(LED_RING, LED_TAT)
+            console.log('Maika end')
+            break;
+        case LED_CALLING:
+            await ioctl.Transmit(LED_RING, LED_CALLING)
+            console.log('Calling')
             break;
     }
 }
