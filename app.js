@@ -965,7 +965,7 @@ async function main() {
     reset_micarray();
     get_audioqueue();
     get_reminder_queue();
-    exec(`/bin/bash /home/root/tlv320aic.sh`).on('exit', async () => {
+    exec(`/bin/bash /home/root/mixes/tlv320aic.sh`).on('exit', async () => {
         setTimeout(() => {
             exec(`aplay ${current_path}/Sounds/${'boot_sequence_intro_1.wav'}`).on('exit', async () => {
                 exec(`aplay ${current_path}/Sounds/${'hello_VA.wav'}`)
