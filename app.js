@@ -74,7 +74,7 @@ var lastInitiator = null;
 
 var reminder_lists = [];
 
-var grpcBackendTTS = grpc.load('./backend_TTS.proto').tts_server  // this takes long time
+var grpcBackendTTS = grpc.load(`${current_path}/backend_TTS.proto`).tts_server  // this takes long time
 var grpcBackendTTSClient = new grpcBackendTTS.Text2Speech(util.format('%s:50051', config.IP_TTS_YEN), grpc.credentials.createInsecure());
 
 var mic_options = {
