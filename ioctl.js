@@ -10,7 +10,7 @@ const CODEC_ADDR = 0x18
 
 var data = new Buffer([0x00, 0x00, 0x00, 0x00]);
 
-const i2c1 = i2c.openSync(1)
+const i2c2 = i2c.openSync(2)
 const i2c1_forceAccess = i2c.openSync(1, {forceAccess: true})
 
 function pulse() {
@@ -21,7 +21,7 @@ function pulse() {
 }
 
 function reset() {
-	execFile('/bin/bash', ['/home/root/reset.sh'], function(err, stdout, stderr) {
+	execFile('/bin/bash', ['/home/root/mixes/reset.sh'], function(err, stdout, stderr) {
 		if (err) {
 			console.log('exec error:', err);
 		}
@@ -35,7 +35,7 @@ function Transmit(target, command, value) {
 	data[0] = target
 	data[1] = command
 	data[2] = value
-	i2c1.i2cWriteSync(I2C_ADDRESS, BUFF_SIZE, data, function(err) {
+	i2c2.i2cWriteSync(I2C_ADDRESS, BUFF_SIZE, data, function(err) {
 		if (err) {
 			reset()
 			throw err
@@ -111,7 +111,7 @@ function setRGB(led, red, green, blue) {
 	data[1] = red
 	data[2] = green
 	data[3] = blue
-	i2c1.i2cWriteSync(I2C_ADDRESS, 0x04, data, function(err) {
+	i2c2.i2cWriteSync(I2C_ADDRESS, 0x04, data, function(err) {
 		if (err) {
 			reset()
 			throw err
