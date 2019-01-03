@@ -119,10 +119,128 @@ function setRGB(led, red, green, blue) {
 	})
 }
 
+function OutputToSpeaker() {
+	//Select Page 1
+	data[0] = 0x00
+	data[1] = 0x01
+	i2c1_forceAccess.i2cWriteSync(CODEC_ADDR, 0x02, data, function(err) {
+		if (err) {
+			reset()
+			throw err;
+		}
+	})
+
+	// Route LDAC/RDAC to LOL/LOR
+	data[0] = 0x0e
+	data[1] = 0x08
+	i2c1_forceAccess.i2cWriteSync(CODEC_ADDR, 0x02, data, function(err) {
+		if (err) {
+			reset()
+			throw err;
+		}
+	})
+	data[0] = 0x0f
+	data[1] = 0x08
+	i2c1_forceAccess.i2cWriteSync(CODEC_ADDR, 0x02, data, function(err) {
+		if (err) {
+			reset()
+			throw err;
+		}
+	})
+
+	// Unmute LOL/LOR driver, 0db Gain
+	data[0] = 0x12
+	data[1] = 0x00
+	i2c1_forceAccess.i2cWriteSync(CODEC_ADDR, 0x02, data, function(err) {
+		if (err) {
+			reset()
+			throw err;
+		}
+	})
+	data[0] = 0x13
+	data[1] = 0x00
+	i2c1_forceAccess.i2cWriteSync(CODEC_ADDR, 0x02, data, function(err) {
+		if (err) {
+			reset()
+			throw err;
+		}
+	})
+
+	//Power up LOL/LOR
+	data[0] = 0x09
+	data[1] = 0x0c
+	i2c1_forceAccess.i2cWriteSync(CODEC_ADDR, 0x02, data, function(err) {
+		if (err) {
+			reset()
+			throw err;
+		}
+	})
+}
+
+function OutputToJack3_5() {
+	//Select Page 1
+	data[0] = 0x00
+	data[1] = 0x01
+	i2c1_forceAccess.i2cWriteSync(CODEC_ADDR, 0x02, data, function(err) {
+		if (err) {
+			reset()
+			throw err;
+		}
+	})
+
+	// Route LDAC/RDAC to HPL/HPR
+	data[0] = 0x0c
+	data[1] = 0x08
+	i2c1_forceAccess.i2cWriteSync(CODEC_ADDR, 0x02, data, function(err) {
+		if (err) {
+			reset()
+			throw err;
+		}
+	})
+	data[0] = 0x0d
+	data[1] = 0x08
+	i2c1_forceAccess.i2cWriteSync(CODEC_ADDR, 0x02, data, function(err) {
+		if (err) {
+			reset()
+			throw err;
+		}
+	})
+
+	// Unmute HPL/HPR driver, 0db Gain
+	data[0] = 0x10
+	data[1] = 0x00
+	i2c1_forceAccess.i2cWriteSync(CODEC_ADDR, 0x02, data, function(err) {
+		if (err) {
+			reset()
+			throw err;
+		}
+	})
+	data[0] = 0x11
+	data[1] = 0x00
+	i2c1_forceAccess.i2cWriteSync(CODEC_ADDR, 0x02, data, function(err) {
+		if (err) {
+			reset()
+			throw err;
+		}
+	})
+
+	//Power up LOL/LOR
+	data[0] = 0x09
+	data[1] = 0x30
+	i2c1_forceAccess.i2cWriteSync(CODEC_ADDR, 0x02, data, function(err) {
+		if (err) {
+			reset()
+			throw err;
+		}
+	})
+}
+
 module.exports = {
 	reset: 				reset,
 	Transmit: 			Transmit,
 	mute: 				mute,
 	unmute: 			unmute,
-	setRGB: 			setRGB
+	setRGB: 			setRGB,
+	OutputToSpeaker: 	OutputToSpeaker,
+	OutputToJack3_5: 	OutputToJack3_5
 }

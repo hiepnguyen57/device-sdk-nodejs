@@ -102,9 +102,12 @@ var ioctl = require('./ioctl');
 // Export gpio48 as an interrupt generating input with a debounceTimeout of 10
 const gpio48 = new gpio(48, 'in', 'rising', {debounceTimeout: 10});
 
+//Export gpio30 as an tinterrupt generating input with a debounceTimeout of 10
+const gpio30 = new gpio(30, 'in', 'both', {debounceTimeout: 10});
+
 var RxBuff = new Buffer([0x00, 0x00]);
 
-const i2c1 = i2c.openSync(1);
+const i2c2 = i2c.openSync(2);
 var fs = require('fs');
 //var fifo = require('fifo')()
 var clientIsOnline;
@@ -652,6 +655,27 @@ process.on('SIGINT', function () {
     quit();
 });
 
+
+/**
+ * Jack 3.5 Dectection
+ *
+ * @param {None}
+ */
+function jack_detection() {
+    gpio30.watch((err, value) => {
+        if(err) {
+            throw err;
+        }
+        if(value) {
+            //Jack 3.5 Line
+        }
+        else {
+            //Speaker
+            
+        }
+    })
+}
+
 /**
  * Receiving data from Mic array
  *
@@ -663,7 +687,7 @@ function event_watcher() {
             throw err;
         }
         //console.log('Receiving data from Mic-array')
-        i2c1.i2cReadSync(I2C_ADDRESS, BUFF_SIZE, RxBuff, function (error) {
+        i2c2.i2cReadSync(I2C_ADDRESS, BUFF_SIZE, RxBuff, function (error) {
             if (err) {
                 console.log('error transfer');
             }
@@ -672,6 +696,22 @@ function event_watcher() {
     })
 }
 
+function Output_Handler() {
+    //Jack3.5 Interrupt attach
+    gpio30.watch((err, value) => {
+        if(err) {
+            throw err;
+        }
+        if(value) {
+            console.log('Switch to headphone');
+            ioctl.OutputToJack3_5()
+        }
+        else {
+            console.log('Switch to speaker');
+            ioctl.OutputToSpeaker()
+        }
+    })
+}
 /**
  * Sending command to Mic array
  *
@@ -966,6 +1006,12 @@ async function main() {
     get_audioqueue();
     get_reminder_queue();
     exec(`/bin/bash /home/root/mixes/tlv320aic.sh`).on('exit', async () => {
+        if(gpio30.readSync()) {
+            await ioctl.OutputToJack3_5()
+        }
+        else {
+            await ioctl.OutputToSpeaker()
+        }
         setTimeout(() => {
             exec(`aplay ${current_path}/Sounds/${'boot_sequence_intro_1.wav'}`).on('exit', async () => {
                 exec(`aplay ${current_path}/Sounds/${'hello_VA.wav'}`)
@@ -973,6 +1019,7 @@ async function main() {
         }, 1000);
         await bluetooth_init()
         event_watcher()
+        Output_Handler()
         setTimeout(() => {
             console.log('auto agent registered');
             exec(`python ${current_path}/agent.py`)
