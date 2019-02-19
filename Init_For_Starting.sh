@@ -3,13 +3,17 @@
 #GPIO48 as INPUT PIN
 #GPIO67 as OUTPUT PIN
 #GPIO30 as INPUT PIN
+#GPIO86 as OUTPUT PIN
+
 echo 49 > /sys/class/gpio/export
 echo 66 > /sys/class/gpio/export
-echo 30 > /sys/class/gpio/export
+#echo 30 > /sys/class/gpio/export
 #echo 48 > /sys/class/gpio/export
 echo 67 > /sys/class/gpio/export
+echo 86 > /sys/class/gpio/export
 
 echo out > /sys/class/gpio/gpio49/direction
+echo out > /sys/class/gpio/gpio86/direction
 #echo out > /sys/class/gpio/gpio66/direction
 #echo out > /sys/class/gpio/gpio67/direction
 

@@ -29,11 +29,15 @@ const LED_START	= 0x38
 const LED_STOP	= 0x39 
 const USB_AUDIO = 0x45
 var data = new Buffer([0x00, 0x00, 0x00])
-
+const gpio = require('onoff').Gpio
 var ioctl = require('./ioctl')
 const readline = require('readline');
 
 const rl = readline.createInterface(process.stdin, process.stdout);
+const exec 				= require("child_process").exec;
+
+var wakeword_exec
+const gpio88 = new gpio(88, 'in', 'rising', {debounceTimeout: 10});
 
 /**
  * Input command line.
@@ -98,6 +102,7 @@ async function Buffer_LedRingEvent(command, state) {
 }
 
 async function main() {
+	//wakeword_start()
 	promptInput('Command > ', input => {
 		var command, arg, state;
 		var index_str = input.indexOf(" ");
@@ -162,12 +167,35 @@ async function main() {
 				console.log('command: ' + command);
 				console.log('value: ' + value);
 				break
+			case 'stop':
+				wakeword_stop();
+				break;
+			case 'start':
+				wakeword_start();
+				break;
 		}
 	})
 }
 
-main()
+async function wakeword_start()
+{
+	console.log('start Wakeword');
+	exec(`/home/root/maikao_wakeup`)
+}
+async function wakeword_stop()
+{
+	//wakeword_exec.kill('SIGINT')
+	exec(`ps -ef | grep maikao_wakeup | grep -v grep | awk '{print $2}' | xargs kill`)
+}
 
+gpio88.watch(async(err) => {
+    if (err) {
+        throw err;
+    }
+    console.log('Wakeword detected')
+})
+
+main()
 
 
 

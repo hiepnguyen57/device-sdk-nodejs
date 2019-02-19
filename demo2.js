@@ -1,36 +1,59 @@
 'use strict';
 /* Library -------------------------------------------------------------------*/
-const readline = require('readline');
-const rl = readline.createInterface(process.stdin, process.stdout);
-const path = require('path');
-const config = require('./config.json');
-const util = require('util');
-const BinaryClient = require('binaryjs').BinaryClient;
-const eventGenerator = require('./event');
-const lame = require('lame');
-const Speaker = require('speaker');
-const event = require('events');
-const recordingStream = require('node-record-lpcm16');
-const moment = require('moment')
+const readline 			= require('readline');
+const rl 				= readline.createInterface(process.stdin, process.stdout);
 
-const { spawn } = require("child_process");
-const pjsua = spawn('pjsua', ['--config-file', '/home/root/music-player/sip.cfg']);
-pjsua.stdin.setEncoding('utf8');
-pjsua.stdout.on('data', (data) => {
-    console.log(data.toString('utf8'));
-});
+//var fifo 				= require('fifo')()
+var fs 					= require('fs')
+const path 				= require('path');
+const config 			= require('./config.json');
+const util 				= require('util');
+const BinaryClient 		= require('binaryjs').BinaryClient;
+const eventGenerator 	= require('./event');
+const lame 				= require('lame');
+const Speaker 			= require('speaker');
+const event 			= require('events');
+const recordingStream 	= require('node-record-lpcm16');
+const moment 			= require('moment')
+const exec_sync         = util.promisify(require('child_process').exec);
+const { spawn } 		= require("child_process");
+const exec 				= require("child_process").exec;
+const i2c 				= require('i2c-bus')
+const gpio 				= require('onoff').Gpio
+var ioctl 				= require('./ioctl')
+var music_manager 		= require('./music_player').getMusicManager()
+const bluetooth_discoverable = require('./bluetooth').bluetooth_discoverable
+const bluetooth_init 	= require('./bluetooth').bluetooth_init
+const events 			= require('./music_player').events
+const amixer 			= require('./amixer')
+var bluez_event 		= require('./bluetooth').bluez_event
+var bluetooth 			= require('./bluetooth').bluetooth
+var bluealsa_aplay_connect = require('./bluetooth').bluealsa_aplay_connect
+var bluealsa_aplay_disconnect = require('./bluetooth').bluealsa_aplay_disconnect
+const i2c2 = i2c.openSync(2)
 
-function exec_command(input) {
-    pjsua.stdin.write(`${input}\n`);
-}
+const pjsua 			= spawn('pjsua', ['--config-file', '/home/root/music-player/sip.cfg']);
 
 /* Imports the Google Cloud client library */
 const speech = require('@google-cloud/speech');
 const current_path = require('path').dirname(require.main.filename);
 process.env['GOOGLE_APPLICATION_CREDENTIALS'] = `${current_path}/credentials.json`;
-
 var rootCas = require('ssl-root-cas').create();
 rootCas.addFile(path.join(__dirname, './gd_bundle-g2-g1.crt'));
+
+
+/* Creates a client */
+const speech_client 	= new speech.SpeechClient();
+var client = new BinaryClient('wss://chatbot.iviet.com:4433');
+
+pjsua.stdin.setEncoding('utf8');
+pjsua.stdout.on('data', (data) => {
+	console.log(data.toString('utf8'));
+});
+
+function exec_command(input) {
+	pjsua.stdin.write(`${input}\n`);
+}
 
 /* will work with all https requests will all libraries (i.e. request.js) */
 require('https').globalAgent.options.ca = rootCas;
@@ -46,25 +69,10 @@ var mic_options = {
 	languageCode: 'vi-VN'// 'vi-VN' 'en-US'
 }
 
-/* Create the Speaker instance */
-var audioOptions = {
-	channels: 2,
-	bitDepth: 16,
-	sampleRate: 44100,
-	mode: lame.STEREO,
-};
-
-/* Creates a client */
-const speech_client = new speech.SpeechClient();
-
-const exec = require("child_process").exec;
-const i2c = require('i2c-bus')
-const gpio = require('onoff').Gpio
-var ioctl = require('./ioctl')
-
 // Export gpio48 as an interrupt generating input with a debounceTimeout of 10
 const gpio48 = new gpio(48, 'in', 'rising', {debounceTimeout: 10})
-
+//Export gpio30 as an tinterrupt generating input with a debounceTimeout of 10
+const gpio30 = new gpio(30, 'in', 'both', {debounceTimeout: 10});
 // Export gpio88 as an interrupt generating input with a debounceTimeout of 10
 const gpio88 = new gpio(88, 'in', 'rising', {debounceTimeout: 10});
 
@@ -89,7 +97,6 @@ const BLE_ON = 0x43
 const BLE_OFF = 0x44
 const USB_AUDIO = 0x45
 const CLIENT_ERROR = 0x46
-
 const LED_DIMMING = 0x30
 const LED_CIRCLE = 0x31
 const LED_EMPTY	= 0x32
@@ -102,34 +109,25 @@ const LED_STOP	= 0x39
 
 var RxBuff = new Buffer([0x00, 0x00])
 
-const i2c2 = i2c.openSync(2)
-var fs = require('fs')
-//var fifo = require('fifo')()
+
 var clientIsOnline
+var wakeword_exec
 var file_name = null
 var file = null;
-var client = new BinaryClient('wss://chatbot.iviet.com:4433');
+
 var clientStream;
 var recognizeStream;
 var isRecording = false;
 var isBluePlaying = false;
 var isBlueResume = false;
 var isPlaystreamPlaying = false;
+var musicPlayStreamResume = false
+
 var volumebackup
 
-var music_manager = require('./music_player').getMusicManager()
-const bluetooth_discoverable = require('./bluetooth').bluetooth_discoverable
-const bluetooth_init = require('./bluetooth').bluetooth_init
-const events = require('./music_player').events
-const amixer = require('./amixer')
-var bluez_event = require('./bluetooth').bluez_event
-var bluetooth = require('./bluetooth').bluetooth
-var bluealsa_aplay_connect = require('./bluetooth').bluealsa_aplay_connect
-var bluealsa_aplay_disconnect = require('./bluetooth').bluealsa_aplay_disconnect
-var EventEmitter = require('events').EventEmitter
-var ExpectSpeechEvent = new EventEmitter()
 var backupUrl = ''
-
+var urlcount = 0
+var AudioQueue = []
 /* Private function ----------------------------------------------------------*/
 /**
  * After getting the wake word, this function will stream audio recording to server.
@@ -161,7 +159,7 @@ async function startStream(eventJSON) {
 		interimResults: true, /* If you want interim results, set this to true */
 	};
 
-	// /* Create a recognize stream */
+	/* Create a recognize stream */
 	recognizeStream = speech_client
 		.streamingRecognize(request)
 		.on('error', (err) => {
@@ -188,7 +186,7 @@ async function startStream(eventJSON) {
 			console.log('end recording');
 		})
 
-	//streamToServer.pipe(recognizeStream);
+	streamToServer.pipe(recognizeStream);
 	streamToServer.pipe(clientStream);
 	//streamToServer.pipe(file);// remove comment if you want to save recording file
 	console.log("Speak now!!!");
@@ -216,13 +214,13 @@ async function startStream(eventJSON) {
 async function stopStream() {
 	if(clientIsOnline === true){
 		//await amixer.volume_control('fadeOutVol')
-		await amixer.volume_control(`setvolume ${volumebackup}`)
+		amixer.volume_control(`setvolume ${volumebackup}`)
 		console.log('stop stream');
 		recognizeStream.end();
 		recordingStream.stop();
 		//file.end()
 		clientStream.end();
-
+		//console.time('measure-received-url')
 		//send end of sentence to mic-array
 		Buffer_UserEvent(WAKEWORD_STOP)
 		//music_manager.eventsHandler(events.FadeOutVolume)
@@ -249,95 +247,92 @@ async function webPlayNewSong(serverStream, url)
 	serverStream.on('data', (url) =>{
 		var intro_url = 'http://chatbot.iviet.com' + url
 		console.log(intro_url);
-		//exec(`${current_path}/playurl ${intro_url}`)
-		exec(`wget --no-check-certificate ${intro_url} -O - | mpg123 -`);
+		exec(`wget --no-check-certificate ${intro_url} -O - | mpg123 -`).on('exit', async() => {
+			maikaowk_start()
+		})
 	})
 	music_manager.url = 'http://music.olli.vn:50052/streaming?url=' + url
 	music_manager.eventsHandler(events.W_NewSong)
 }
 
-// function playurlStream(input) {
-// 	return new Promise(async resolve => {
-// 		var https = input.substring(0, 5)
-// 		if(https = 'https') {
-// 			console.log(input);
-// 			//play https mp3 using mpg123
-// 			exec(`${current_path}/mpg123_https.sh ${input}`).on('exit', () => {
-// 				resolve()
-// 			})
-// 		}
-// 		else if(https = '/file') {
-// 			var http_url = 'http://chatbot.iviet.com' + input
-// 			console.log('http link: ' + http_url);
-// 			exec(`${current_path}/playurl ${http_url}`).on('exit', () => {
-// 				resolve()
-// 			})
-// 		}
-// 	})
-// }
+function play_audioqueue() {
+	return new Promise(async resolve => {
+		if(AudioQueue.length > 0) {
+			var url;
+			url = AudioQueue.shift();
+			console.log(`-->url: ${url}`);
+			await exec_sync(`wget --no-check-certificate ${url} -O - | mpg123 -`);
+		}
+		resolve()
+	})
+}
 
 function playStream(serverStream) {
-	var musicResume = false
+	musicPlayStreamResume = false
 	if(music_manager.isMusicPlaying == true) {
 		music_manager.eventsHandler(events.Pause)
-		musicResume = true
+		musicPlayStreamResume = true
 	}
 
 	console.log('playStream via url');
 	serverStream.on('data', (url) => {
-		console.log('url: ' + url)
-		var https = url.substring(0, 5)
-		if(https == 'https')
-		{
-			console.log(url);
-			//play https mp3 using mpg123
-			exec(`${current_path}/mpg123_https.sh ${url}`).on('exit', async() => {
-				if(musicResume === true) {
-					music_manager.eventsHandler(events.Resume)
-				}
-			})
+		if(url == 'lastResponseItem') {
+			// Send the SpeechFinished event
+			console.log('This is lastResponseItem');
+			var eventJSON = eventGenerator.setSpeechSynthesizerSpeechFinished();
+			eventJSON['sampleRate'] = 16000
+			var responceStream = client.createStream(eventJSON)
 		}
-		else if(https == '/file') {
-			isPlaystreamPlaying = true
-			var http_url = 'http://chatbot.iviet.com' + url
-			console.log('http link: ' + http_url);
-			//play http mp3 using mpg123
-			exec(`${current_path}/playurl ${http_url}`).on('exit', async() => {
-				if(musicResume === true) {
-					music_manager.eventsHandler(events.Resume)
-				}
-				isPlaystreamPlaying = false
-				ExpectSpeechEvent.emit('playbackup')
-			})
-		}
-		else if(https == 'lastR') {
-            // Send the SpeechFinished event
-            //console.log('This is lastResponseItem');
-            var eventJSON = eventGenerator.setSpeechSynthesizerSpeechFinished();
-            eventJSON['sampleRate'] = 16000
-            var responceStream = client.createStream(eventJSON)
+		else {
+			//console.timeEnd('measure-received-url')
+			var https = url.substring(0, 5)
+			if(https == 'https') {
+				AudioQueue.push(url);
+			}
+			else {
+				AudioQueue.push(`http://chatbot.iviet.com${url}`);
+			}
+			urlcount++
+			if(urlcount < 2) {
+				//isPlaystreamPlaying = true
+				var first_url = AudioQueue.shift();
+				exec(`wget --no-check-certificate ${first_url} -O - | mpg123 -`).on('exit', async() => {
+					//check again, if only have one url
+					if(urlcount < 2) {
+						if(musicPlayStreamResume === true) {
+							music_manager.eventsHandler(events.Resume)
+						}
+						//reset flags
+						urlcount = 0
+						maikaowk_start()
+					}
+					else {//have many link url
+						await play_audioqueue()
+						//reset flags
+						urlcount = 0;
+						if(musicPlayStreamResume === true) {
+							music_manager.eventsHandler(events.Resume)
+						}
+						maikaowk_start()
+					}
+					//todo: below used to expect speech event
+					// isPlaystreamPlaying = false
+					// if(backupUrl != '') {
+					// 	playExpectSpeech()
+					// }
+				})
+			}
 		}
 	})
-
-	// serverStream.on('end', async() => {
-	// 	console.log('size of: ' + linkurl.length);
-	// 	if(urlcount > 2) {
-	// 		for(var i=1; i <= urlcount; i++) {
-	// 			await playurlStream(linkurl[i])
-	// 		}
-	// 	}
-	// 	urlcount = 0
-	// })
 }
 
-ExpectSpeechEvent.on('playbackup', async() => {
-	if(backupUrl != '') {
-		console.log('backupUrl: ' + backupUrl);
-		exec(`${current_path}/playurl ${backupUrl}`).on('exit', async() => {
-			backupUrl = ''
-		})
-	}
-})
+// async function playExpectSpeech() {
+// 	console.log('backupUrl: ' + backupUrl);
+// 	exec(`${current_path}/playurl ${backupUrl}`).on('exit', async() => {
+// 		backupUrl = ''
+// 	})
+// }
+
 /**
  * Receiving directive and streaming source from server to this client after streamed audio recording to server.
  *
@@ -353,19 +348,20 @@ client.on("stream", async (serverStream, directive) => {
 
 	console.log('RAWSPEECH: ' + directive.header.rawSpeech)
 	if (directive.header.name == "Recognize" && directive.payload.format == "AUDIO_L16_RATE_16000_CHANNELS_1") {
-		// var musicResume = false
-		// if(music_manager.isMusicPlaying == true) {
-		// 	music_manager.eventsHandler(events.Pause)
-		// 	musicResume = true
-		// }
+		var musicResume = false
+		if(music_manager.isMusicPlaying == true) {
+			music_manager.eventsHandler(events.Pause)
+			musicResume = true
+		}
 
-		// error_record()
+		//error_record()
 		console.log('xin loi khong ghi am duoc!!!');
-		// exec(`aplay ${current_path}/Sounds/${'donthearanything.wav'}`).on('exit', function() {
-		// 	if(musicResume === true) {
-		// 			music_manager.eventsHandler(events.Resume)
-		// 	}
-		// })
+		exec(`aplay ${current_path}/Sounds/${'donthearanything.wav'}`).on('exit', function() {
+			if(musicResume === true) {
+					music_manager.eventsHandler(events.Resume)
+			}
+			maikaowk_start()
+		})
 	}
 
 	if (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Empty") {
@@ -390,6 +386,7 @@ client.on("stream", async (serverStream, directive) => {
 	if (directive.header.namespace == "PlaybackController" && directive.header.name == "PauseCommandIssued") {
 		console.log('Pause command');
 		music_manager.eventsHandler(events.Pause)
+		maikaowk_start()
 		return
 	}
 
@@ -399,6 +396,7 @@ client.on("stream", async (serverStream, directive) => {
 	if (directive.header.namespace == "PlaybackController" && directive.header.name == "ResumeCommandIssued") {
 		console.log('Resume Command');
 		music_manager.eventsHandler(events.Resume)
+		maikaowk_start()
 		return
 	}
 
@@ -417,6 +415,7 @@ client.on("stream", async (serverStream, directive) => {
 			else {
 				Buffer_ButtonEvent(VOLUME_DOWN)
 			}
+			maikaowk_start()
 		}
 
 		/* Volume Mute. */
@@ -430,6 +429,7 @@ client.on("stream", async (serverStream, directive) => {
 				/* Unmute */
 				Buffer_ButtonEvent(VOLUME_UNMUTE)
 			}
+			maikaowk_start()
 		}
 		return
 	}
@@ -459,6 +459,7 @@ client.on("stream", async (serverStream, directive) => {
 				else {
 					isBlueResume = false;//reset flags
 				}
+				maikaowk_start()
 			})
 		}
 		else if (directive.header.name == "DisconnectDevice") {
@@ -475,6 +476,7 @@ client.on("stream", async (serverStream, directive) => {
 			else {
 				isBlueResume = false;//reset flags
 			}
+			maikaowk_start()
 		}
 		return
 	}
@@ -484,9 +486,9 @@ client.on("stream", async (serverStream, directive) => {
 		if(music_manager.isMusicPlaying == true) {
 			music_manager.eventsHandler(events.Pause)
 		}
-        var eventJSON = eventGenerator.setSpeechSynthesizerSpeechFinished();
-        eventJSON['sampleRate'] = 16000
-        var responceStream = client.createStream(eventJSON)
+		var eventJSON = eventGenerator.setSpeechSynthesizerSpeechFinished();
+		eventJSON['sampleRate'] = 16000
+		var responceStream = client.createStream(eventJSON)
 	}
 
 	if(directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Speak") {
@@ -496,31 +498,35 @@ client.on("stream", async (serverStream, directive) => {
 	}
 
 	if (directive.header.namespace == "SpeechRecognizer" && directive.header.name == "ExpectSpeech") {
-		//console.log('event expectspeech');
 		onSession = true;
 		dialogRequestId = directive.header.dialogRequestId;
 		lastInitiator = directive.payload.initiator;
 
 		serverStream.on('data', (url) => {
-			//console.log('url: ' + url)
-			var https = url.substring(0, 5)
-			if(https == '/file') {
-				var http_url = 'http://chatbot.iviet.com' + url
-				console.log('http link: ' + http_url);
-				if(isPlaystreamPlaying === true) {
-					backupUrl = http_url
-					console.log('need to play audio');
+			if(url === 'lastResponseItem') {
+				// Send the SpeechFinished event
+				//console.log('This is lastResponseItem');
+				var eventJSON = eventGenerator.setSpeechSynthesizerSpeechFinished();
+				eventJSON['sampleRate'] = 16000
+				var responceStream = client.createStream(eventJSON)
+			}
+			else {
+				//console.log('url: ' + url)
+				var https = url.substring(0, 5)
+				if(https == '/file') {
+					var http_url = 'http://chatbot.iviet.com' + url
 				}
 				else {
-					exec(`${current_path}/playurl ${http_url}`)
+					http_url = url
 				}
-			}
-			else if(https == 'lastR') {
-        	    // Send the SpeechFinished event
-        	    //console.log('This is lastResponseItem');
-        	    var eventJSON = eventGenerator.setSpeechSynthesizerSpeechFinished();
-        	    eventJSON['sampleRate'] = 16000
-        	    var responceStream = client.createStream(eventJSON)
+				console.log('url link: ' + http_url);
+				if(isPlaystreamPlaying === true) {
+					backupUrl = http_url
+						//console.log('we have a link url which need to play');
+				}
+				else {
+					exec(`wget --no-check-certificate ${http_url} -O - | mpg123 -`)
+				}
 			}
 		})
 	}
@@ -530,11 +536,14 @@ client.on("stream", async (serverStream, directive) => {
 			music_manager.eventsHandler(events.Pause)
 		}
 
-        exec_command(`m`);
-        setTimeout(() => {
-            exec_command(`sip:10015@35.240.201.210;transport=tcp`);
-        }, 100);
+		exec_command(`m`);
+		setTimeout(() => {
+			exec_command(`sip:10015@35.240.201.210;transport=tcp`);
+		}, 100);
 	}
+
+
+
 });
 
 /**
@@ -567,17 +576,49 @@ function event_watcher() {
 		BufferController(RxBuff[0], RxBuff[1])
 	})
 
-    gpio88.watch((err) => {
-        if (err) {
-            throw err;
-        }
-        console.log('Wakeword detected')
-        ioctl.Transmit(USER_EVENT, WAKEWORD_START)
-        Buffer_ButtonEvent(WAKEWORD_START);
-    })
+	gpio88.watch(async(err) => {
+		if (err) {
+			throw err;
+		}
+		console.log('Wakeword detected')
+		ioctl.Transmit(USER_EVENT, WAKEWORD_START)
+		Buffer_ButtonEvent(WAKEWORD_START);
+	})
+
 }
 
+function Output_Handler() {
+	//Jack3.5 Interrupt attach
+	gpio30.watch((err, value) => {
+		if(err) {
+			throw err;
+		}
+		if(value) {
+			console.log('Switch to headphone');
+			ioctl.OutputToJack3_5()
+		}
+		else {
+			console.log('Switch to speaker');
+			ioctl.OutputToSpeaker()
+		}
+	})
+}
 
+async function maikaowk_start()
+{
+	if((wakeword_exec === undefined) || (wakeword_exec.killed === true)) {
+		console.log('start Wakeword');
+		wakeword_exec = exec(`/home/root/maikao_wakeup`)
+	}
+}
+
+async function maikaowk_stop()
+{
+	//exec(`ps -ef | grep maikao_wakeup | grep -v grep | awk '{print $2}' | xargs kill`)
+	if(wakeword_exec != undefined) {
+		wakeword_exec.kill('SIGINT')
+	}
+}
 /**
  * Main
  *
@@ -585,14 +626,24 @@ function event_watcher() {
  */
 async function main() {
 	reset_micarray()
-	exec(`/bin/bash /home/root/tlv320aic.sh`).on('exit', async() => {
+	exec(`/bin/bash /home/root/mixes/tlv320aic.sh`).on('exit', async() => {
+		// if(gpio30.readSync()) {
+		// 	await ioctl.OutputToJack3_5()
+		// }
+		// else {
+		// 	await ioctl.OutputToSpeaker()
+		// }
+		await ioctl.OutputToSpeaker()
 		setTimeout(() => {
 			exec(`aplay ${current_path}/Sounds/${'boot_sequence_intro_1.wav'}`).on('exit', async() => {
-				exec(`aplay ${current_path}/Sounds/${'hello_VA.wav'}`)
+				exec(`aplay ${current_path}/Sounds/${'hello_VA.wav'}`).on('exit', async() => {
+					maikaowk_start()
+				})
 			})
 		}, 1000);
 		await bluetooth_init()
 		event_watcher()
+		//Output_Handler()
 		setTimeout(() => {
 			console.log('auto agent registered');
 			exec(`python ${current_path}/agent.py`)
@@ -650,6 +701,7 @@ async function Buffer_ButtonEvent(command) {
 			if(isRecording != true) {
 				if(clientIsOnline === true) {
 					//await amixer.volume_control('fadeInVol');
+					maikaowk_stop()
 					volumebackup = await amixer.volume_control('getvolume')
 					await amixer.volume_control('setvolume 20')
 					//music_manager.eventsHandler(events.FadeInVolume)
