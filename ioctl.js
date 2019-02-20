@@ -21,7 +21,7 @@ function pulse() {
 }
 
 function reset() {
-	execFile('/bin/bash', ['/home/root/mixes/reset.sh'], function(err, stdout, stderr) {
+	execFile('/bin/bash', ['/home/root/container/reset.sh'], function(err, stdout, stderr) {
 		if (err) {
 			console.log('exec error:', err);
 		}

@@ -626,7 +626,7 @@ async function maikaowk_stop()
  */
 async function main() {
 	reset_micarray()
-	exec(`/bin/bash /home/root/mixes/tlv320aic.sh`).on('exit', async() => {
+	exec(`/bin/bash /home/root/container/tlv320aic.sh`).on('exit', async() => {
 		// if(gpio30.readSync()) {
 		// 	await ioctl.OutputToJack3_5()
 		// }
