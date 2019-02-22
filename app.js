@@ -5,8 +5,7 @@ const eventGenerator    = require('./event');
 const Speaker           = require('speaker');
 const recordingStream   = require('node-record-lpcm16');
 const speech            = require('@google-cloud/speech');
-const {spawn}           = require("child_process");
-const pjsua             = spawn('pjsua', ['--config-file', '/home/root/music-player/sip.cfg']);
+const exec              = require("child_process").exec;
 var   rootCas           = require('ssl-root-cas').create();
 var   sem               = require('semaphore')(1);
 const grpc              = require('grpc');
@@ -17,8 +16,12 @@ const uuidv1            = require('uuid/v1');
 const wav               = require('wav');
 const Stream            = require('stream');
 const path              = require('path');
+var   fs                = require('fs');
 const exec_sync         = util.promisify(require('child_process').exec);
 const moment            = require('moment');
+const net               = require('net');
+
+//exec("python calling-app.py --id 'sip:10099@35.240.201.210' --registrar 'sip:35.240.201.210;transport=tcp' --realm '35.240.201.210' --username 10099 --password 10099 --clock-rate=44100 --snd-clock-rate=44100 --quality=4 --ec-tail=0 --capture-dev=1 --playback-dev=0 --add-codec=pcma --add-codec=pcmu");
 
 /* Private macro -------------------------------------------------------------*/
 const I2C_ADDRESS = 0x68;
@@ -60,7 +63,6 @@ const LED_CALLING = 0x3D
 const current_path = require('path').dirname(require.main.filename);
 
 /* Private variables----------------------------------------------------------*/
-pjsua.stdin.setEncoding('utf8');
 process.env['GOOGLE_APPLICATION_CREDENTIALS'] = `${current_path}/credentials.json`;
 rootCas.addFile(path.join(__dirname, './gd_bundle-g2-g1.crt'));
 
@@ -76,6 +78,8 @@ var reminder_lists = [];
 
 var grpcBackendTTS = grpc.load(`${current_path}/backend_TTS.proto`).tts_server  // this takes long time
 var grpcBackendTTSClient = new grpcBackendTTS.Text2Speech(util.format('%s:50051', config.IP_TTS_YEN), grpc.credentials.createInsecure());
+
+var client_calling;
 
 var mic_options = {
     encoding: 'LINEAR16',
@@ -93,8 +97,6 @@ var audioOptions = {
 
 /* Creates a client */
 const speech_client = new speech.SpeechClient();
-
-const exec = require("child_process").exec;
 const i2c = require('i2c-bus');
 const gpio = require('onoff').Gpio;
 var ioctl = require('./ioctl');
@@ -108,7 +110,6 @@ const gpio30 = new gpio(30, 'in', 'both', {debounceTimeout: 10});
 var RxBuff = new Buffer([0x00, 0x00]);
 
 const i2c2 = i2c.openSync(2);
-var fs = require('fs');
 //var fifo = require('fifo')()
 var clientIsOnline;
 var file_name = null;
@@ -139,20 +140,13 @@ var urlcount = 0;
 var linkurl = [];
 var AudioQueue = [];
 
-/* Private function ----------------------------------------------------------*/
-
-/*pjsua.stdout.on('data', (data) => {
-    console.log(data.toString('utf8'));
-});*/
-
-/**
- * To simplify the writing command for pjsua app.
- *
- * @param {text} input.
- */
-function exec_command_pjsua(input) {
-    pjsua.stdin.write(`${input}\n`);
+var socket_command_sending  = {
+    "cmd": "",
+    "id": "10015",
+    "msg" : ""
 }
+
+/* Private function ----------------------------------------------------------*/
 
 /**
  * After getting the wake word, this function will stream audio recording to server.
@@ -278,6 +272,36 @@ client.on("error", (error) => {
     console.log('client got an error');
     clientIsOnline = false
 });
+
+client_calling = new net.Socket();
+client_calling.connect(4455, '127.0.0.1', function() {
+    console.log('Connected to Calling server');
+});
+
+client_calling.on('close', function() {
+    console.log('Prolog server connection closed');
+});
+
+client_calling.on('data', async function(data) {
+    const socket_command_getting = JSON.parse(data.toString('utf8').replace(/'/g, "\""));
+    calling_processing(socket_command_getting)
+});
+
+function calling_processing(socket_command_getting)
+{
+    if (socket_command_getting["cmd"] === "CALLING")
+    {
+        socket_command_sending["cmd"] = "A";
+        setTimeout(function() {
+            client_calling.write(JSON.stringify(socket_command_sending));
+        }, 1000);
+    }
+    else if (socket_command_getting["cmd"] === "MSG")
+    {
+        console.log(`Message from: ${socket_command_getting["id"]}`);
+        console.log(socket_command_getting["msg"]);
+    }
+}
 
 /**
  * Get & process immediately a new queue
@@ -625,10 +649,10 @@ client.on("stream", async (serverStream, directive) => {
             music_manager.eventsHandler(events.Pause)
         }
 
-        exec_command_pjsua(`m`);
-        setTimeout(() => {
-            exec_command_pjsua(`sip:10015@35.240.201.210;transport=tcp`);
-        }, 100);
+        socket_command_sending["cmd"] = "CALL";
+        socket_command_sending["id"] = "10015";
+        client.write(JSON.stringify(socket_command_sending));
+
         Buffer_UserEvent(LED_CALLING);
     }
 
