@@ -1,9 +1,10 @@
 {
-  "name": "demo_earlysep",
+  "name": "music-player",
   "version": "1.0.0",
   "description": "",
   "main": "app.js",
   "dependencies": {
+    "@google-cloud/speech": "^2.3.0",
     "binaryjs": "^0.2.1",
     "dbus": "^1.0.3",
     "dbus-native": "^0.2.5",
