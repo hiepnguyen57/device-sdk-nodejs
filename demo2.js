@@ -2,7 +2,6 @@
 /* Library -------------------------------------------------------------------*/
 const readline 			= require('readline');
 const rl 				= readline.createInterface(process.stdin, process.stdout);
-
 //var fifo 				= require('fifo')()
 var fs 					= require('fs')
 const path 				= require('path');
@@ -32,7 +31,7 @@ var bluealsa_aplay_connect = require('./bluetooth').bluealsa_aplay_connect
 var bluealsa_aplay_disconnect = require('./bluetooth').bluealsa_aplay_disconnect
 const i2c2 = i2c.openSync(2)
 
-const pjsua 			= spawn('pjsua', ['--config-file', '/home/root/music-player/sip.cfg']);
+//const pjsua 			= spawn('pjsua', ['--config-file', '/home/root/music-player/sip.cfg']);
 
 /* Imports the Google Cloud client library */
 const speech = require('@google-cloud/speech');
@@ -41,19 +40,17 @@ process.env['GOOGLE_APPLICATION_CREDENTIALS'] = `${current_path}/credentials.jso
 var rootCas = require('ssl-root-cas').create();
 rootCas.addFile(path.join(__dirname, './gd_bundle-g2-g1.crt'));
 
-
 /* Creates a client */
 const speech_client 	= new speech.SpeechClient();
-var client = new BinaryClient('wss://chatbot.iviet.com:4433');
 
-pjsua.stdin.setEncoding('utf8');
-pjsua.stdout.on('data', (data) => {
-	console.log(data.toString('utf8'));
-});
+// pjsua.stdin.setEncoding('utf8');
+// pjsua.stdout.on('data', (data) => {
+// 	console.log(data.toString('utf8'));
+// });
 
-function exec_command(input) {
-	pjsua.stdin.write(`${input}\n`);
-}
+// function exec_command(input) {
+// 	pjsua.stdin.write(`${input}\n`);
+// }
 
 /* will work with all https requests will all libraries (i.e. request.js) */
 require('https').globalAgent.options.ca = rootCas;
@@ -116,6 +113,7 @@ var file_name = null
 var file = null;
 
 var clientStream;
+var client;
 var recognizeStream;
 var isRecording = false;
 var isBluePlaying = false;
@@ -228,19 +226,6 @@ async function stopStream() {
 	}
 }
 
-client.on("open", () => {
-	console.log('client has opened');
-	clientIsOnline = true
-})
-
-client.on("pong", (data, flags) => {
-	console.log("PONG received")
-})
-
-client.on("error", (error) => {
-	console.log('client got an error');
-	clientIsOnline = false
-});
 
 async function webPlayNewSong(serverStream, url)
 {
@@ -333,218 +318,6 @@ function playStream(serverStream) {
 // 	})
 // }
 
-/**
- * Receiving directive and streaming source from server to this client after streamed audio recording to server.
- *
- * @resource : event from server.
- * @param {object} serverStream : streaming audio from server.
- * @param {object} directive : use to switch context and control the devices.
- */
-client.on("stream", async (serverStream, directive) => {
-	//console.log("Server Meta is " + JSON.stringify(directive));
-	console.log("Client <--> Backend total response time");
-	console.log(`${directive.header.namespace} == ${directive.header.name} == ${directive.payload.format} \
-	== ${directive.card == null ? directive.card : directive.card.cardOutputSpeech}`)
-
-	console.log('RAWSPEECH: ' + directive.header.rawSpeech)
-	if (directive.header.name == "Recognize" && directive.payload.format == "AUDIO_L16_RATE_16000_CHANNELS_1") {
-		var musicResume = false
-		if(music_manager.isMusicPlaying == true) {
-			music_manager.eventsHandler(events.Pause)
-			musicResume = true
-		}
-
-		//error_record()
-		console.log('xin loi khong ghi am duoc!!!');
-		exec(`aplay ${current_path}/Sounds/${'donthearanything.wav'}`).on('exit', function() {
-			if(musicResume === true) {
-					music_manager.eventsHandler(events.Resume)
-			}
-			maikaowk_start()
-		})
-	}
-
-	if (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Empty") {
-		onSession = true;
-		dialogRequestId = directive.header.dialogRequestId;
-		lastInitiator = directive.payload.initiator;
-		return
-	}
-
-	/**
-	 * Playing music.
-	 */
-	if (directive.header.namespace == "AudioPlayer" && directive.header.name == "Play") {
-		const url = directive.payload.audioItem.stream.url;
-		await webPlayNewSong(serverStream, url)
-		return
-	}
-
-	/**
-	 * Pause music.
-	 */
-	if (directive.header.namespace == "PlaybackController" && directive.header.name == "PauseCommandIssued") {
-		console.log('Pause command');
-		music_manager.eventsHandler(events.Pause)
-		maikaowk_start()
-		return
-	}
-
-	/**
-	 * Resume music.
-	 */
-	if (directive.header.namespace == "PlaybackController" && directive.header.name == "ResumeCommandIssued") {
-		console.log('Resume Command');
-		music_manager.eventsHandler(events.Resume)
-		maikaowk_start()
-		return
-	}
-
-	if (directive.header.namespace == "Alerts" && directive.header.name == "SetAlert") {
-			playStream(serverStream)
-	}
-
-	/**
-	 * Volume adjust.
-	 */
-	if (directive.header.namespace == "Speaker") {
-		if (directive.header.name == "AdjustVolume") {
-			if (directive.payload.volume >= 0) {
-				Buffer_ButtonEvent(VOLUME_UP)
-			}
-			else {
-				Buffer_ButtonEvent(VOLUME_DOWN)
-			}
-			maikaowk_start()
-		}
-
-		/* Volume Mute. */
-		if (directive.header.name == "SetMute") {
-			if (directive.payload.mute == true)
-			{
-				/* Mute */
-				Buffer_ButtonEvent(VOLUME_MUTE)
-			}
-			else {
-				/* Unmute */
-				Buffer_ButtonEvent(VOLUME_UNMUTE)
-			}
-			maikaowk_start()
-		}
-		return
-	}
-
-	/**
-	 * Opening bluetooth.
-	 */
-	if (directive.header.namespace == "Bluetooth") {
-		var musicResume = false
-		if(music_manager.isMusicPlaying == true) {
-			music_manager.eventsHandler(events.Pause)
-			musicResume = true
-		}
-
-		if (directive.header.name == "ConnectByDeviceId") {
-			await bluetooth_discoverable('on')
-			Buffer_UserEvent(BLE_ON)
-			exec(`aplay ${current_path}/Sounds/${'bluetooth_connected_322896.wav'}`).on('exit', async() => {
-
-				if(isBlueResume != true) {
-					setTimeout(() => {
-						if(musicResume === true) {
-							music_manager.eventsHandler(events.Resume)
-						}
-					}, 500);
-				}
-				else {
-					isBlueResume = false;//reset flags
-				}
-				maikaowk_start()
-			})
-		}
-		else if (directive.header.name == "DisconnectDevice") {
-			Buffer_UserEvent(BLE_OFF)
-			await bluetooth_discoverable('off')
-
-			if(isBlueResume != true) {
-				setTimeout(() => {
-					if(musicResume === true) {
-						music_manager.eventsHandler(events.Resume)
-					}
-				}, 500);
-			}
-			else {
-				isBlueResume = false;//reset flags
-			}
-			maikaowk_start()
-		}
-		return
-	}
-
-	/* PUT this at last to avoid earlier matching */
-	if (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Silent") {
-		if(music_manager.isMusicPlaying == true) {
-			music_manager.eventsHandler(events.Pause)
-		}
-		var eventJSON = eventGenerator.setSpeechSynthesizerSpeechFinished();
-		eventJSON['sampleRate'] = 16000
-		var responceStream = client.createStream(eventJSON)
-	}
-
-	if(directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Speak") {
-			console.log("SpeechSynthesizer only Playing Stream below")
-			playStream(serverStream);
-		return
-	}
-
-	if (directive.header.namespace == "SpeechRecognizer" && directive.header.name == "ExpectSpeech") {
-		onSession = true;
-		dialogRequestId = directive.header.dialogRequestId;
-		lastInitiator = directive.payload.initiator;
-
-		serverStream.on('data', (url) => {
-			if(url === 'lastResponseItem') {
-				// Send the SpeechFinished event
-				//console.log('This is lastResponseItem');
-				var eventJSON = eventGenerator.setSpeechSynthesizerSpeechFinished();
-				eventJSON['sampleRate'] = 16000
-				var responceStream = client.createStream(eventJSON)
-			}
-			else {
-				//console.log('url: ' + url)
-				var https = url.substring(0, 5)
-				if(https == '/file') {
-					var http_url = 'http://chatbot.iviet.com' + url
-				}
-				else {
-					http_url = url
-				}
-				console.log('url link: ' + http_url);
-				if(isPlaystreamPlaying === true) {
-					backupUrl = http_url
-						//console.log('we have a link url which need to play');
-				}
-				else {
-					exec(`wget --no-check-certificate ${http_url} -O - | mpg123 -`)
-				}
-			}
-		})
-	}
-
-	if (directive.header.namespace == "Calling") {
-		if(music_manager.isMusicPlaying == true) {
-			music_manager.eventsHandler(events.Pause)
-		}
-
-		exec_command(`m`);
-		setTimeout(() => {
-			exec_command(`sip:10015@35.240.201.210;transport=tcp`);
-		}, 100);
-	}
-
-
-
-});
 
 /**
  * When quit app need to do somethings.
@@ -619,6 +392,269 @@ async function maikaowk_stop()
 		wakeword_exec.kill('SIGINT')
 	}
 }
+
+function client_manager() {
+	client = new BinaryClient('wss://chatbot.iviet.com:4433');
+	//maikaowk_start()
+
+	client.on("open", () => {
+		console.log('client has opened');
+		clientIsOnline = true
+	})
+
+	client.on("pong", (data, flags) => {
+		console.log("PONG received")
+	})
+
+	client.on("error", (error) => {
+		console.log('client got an error');
+		clientIsOnline = false
+	});
+
+		/**
+	 * Receiving directive and streaming source from server to this client after streamed audio recording to server.
+	 *
+	 * @resource : event from server.
+	 * @param {object} serverStream : streaming audio from server.
+	 * @param {object} directive : use to switch context and control the devices.
+	 */
+	client.on("stream", async (serverStream, directive) => {
+		//console.log("Server Meta is " + JSON.stringify(directive));
+		console.log("Client <--> Backend total response time");
+		console.log(`${directive.header.namespace} == ${directive.header.name} == ${directive.payload.format} \
+		== ${directive.card == null ? directive.card : directive.card.cardOutputSpeech}`)
+
+		console.log('RAWSPEECH: ' + directive.header.rawSpeech)
+		if (directive.header.name == "Recognize" && directive.payload.format == "AUDIO_L16_RATE_16000_CHANNELS_1") {
+			var musicResume = false
+			if(music_manager.isMusicPlaying == true) {
+				music_manager.eventsHandler(events.Pause)
+				musicResume = true
+			}
+
+			//error_record()
+			console.log('xin loi khong ghi am duoc!!!');
+			exec(`aplay ${current_path}/Sounds/${'donthearanything.wav'}`).on('exit', function() {
+				if(musicResume === true) {
+						music_manager.eventsHandler(events.Resume)
+				}
+				maikaowk_start()
+			})
+		}
+
+		if (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Empty") {
+			onSession = true;
+			dialogRequestId = directive.header.dialogRequestId;
+			lastInitiator = directive.payload.initiator;
+			return
+		}
+
+		/**
+		 * Playing music.
+		 */
+		if (directive.header.namespace == "AudioPlayer" && directive.header.name == "Play") {
+			const url = directive.payload.audioItem.stream.url;
+			await webPlayNewSong(serverStream, url)
+			return
+		}
+
+		/**
+		 * Pause music.
+		 */
+		if (directive.header.namespace == "PlaybackController" && directive.header.name == "PauseCommandIssued") {
+			console.log('Pause command');
+			music_manager.eventsHandler(events.Pause)
+			maikaowk_start()
+			return
+		}
+
+		/**
+		 * Resume music.
+		 */
+		if (directive.header.namespace == "PlaybackController" && directive.header.name == "ResumeCommandIssued") {
+			console.log('Resume Command');
+			music_manager.eventsHandler(events.Resume)
+			maikaowk_start()
+			return
+		}
+
+		if (directive.header.namespace == "Alerts" && directive.header.name == "SetAlert") {
+				playStream(serverStream)
+		}
+
+		/**
+		 * Volume adjust.
+		 */
+		if (directive.header.namespace == "Speaker") {
+			if (directive.header.name == "AdjustVolume") {
+				if (directive.payload.volume >= 0) {
+					Buffer_ButtonEvent(VOLUME_UP)
+				}
+				else {
+					Buffer_ButtonEvent(VOLUME_DOWN)
+				}
+				maikaowk_start()
+			}
+
+			/* Volume Mute. */
+			if (directive.header.name == "SetMute") {
+				if (directive.payload.mute == true)
+				{
+					/* Mute */
+					Buffer_ButtonEvent(VOLUME_MUTE)
+				}
+				else {
+					/* Unmute */
+					Buffer_ButtonEvent(VOLUME_UNMUTE)
+				}
+				maikaowk_start()
+			}
+			return
+		}
+
+		/**
+		 * Opening bluetooth.
+		 */
+		if (directive.header.namespace == "Bluetooth") {
+			var musicResume = false
+			if(music_manager.isMusicPlaying == true) {
+				music_manager.eventsHandler(events.Pause)
+				musicResume = true
+			}
+
+			if (directive.header.name == "ConnectByDeviceId") {
+				await bluetooth_discoverable('on')
+				Buffer_UserEvent(BLE_ON)
+				exec(`aplay ${current_path}/Sounds/${'bluetooth_connected_322896.wav'}`).on('exit', async() => {
+
+					if(isBlueResume != true) {
+						setTimeout(() => {
+							if(musicResume === true) {
+								music_manager.eventsHandler(events.Resume)
+							}
+						}, 500);
+					}
+					else {
+						isBlueResume = false;//reset flags
+					}
+					maikaowk_start()
+				})
+			}
+			else if (directive.header.name == "DisconnectDevice") {
+				Buffer_UserEvent(BLE_OFF)
+				await bluetooth_discoverable('off')
+	
+				if(isBlueResume != true) {
+					setTimeout(() => {
+						if(musicResume === true) {
+							music_manager.eventsHandler(events.Resume)
+						}
+					}, 500);
+				}
+				else {
+					isBlueResume = false;//reset flags
+				}
+				maikaowk_start()
+			}
+			return
+		}
+
+		/* PUT this at last to avoid earlier matching */
+		if (directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Silent") {
+			if(music_manager.isMusicPlaying == true) {
+				music_manager.eventsHandler(events.Pause)
+			}
+			var eventJSON = eventGenerator.setSpeechSynthesizerSpeechFinished();
+			eventJSON['sampleRate'] = 16000
+			var responceStream = client.createStream(eventJSON)
+		}
+
+		if(directive.header.namespace == "SpeechSynthesizer" && directive.header.name == "Speak") {
+				console.log("SpeechSynthesizer only Playing Stream below")
+				playStream(serverStream);
+			return
+		}
+
+		if (directive.header.namespace == "SpeechRecognizer" && directive.header.name == "ExpectSpeech") {
+			onSession = true;
+			dialogRequestId = directive.header.dialogRequestId;
+			lastInitiator = directive.payload.initiator;
+
+			serverStream.on('data', (url) => {
+				if(url === 'lastResponseItem') {
+					// Send the SpeechFinished event
+					//console.log('This is lastResponseItem');
+					var eventJSON = eventGenerator.setSpeechSynthesizerSpeechFinished();
+					eventJSON['sampleRate'] = 16000
+					var responceStream = client.createStream(eventJSON)
+				}
+				else {
+					//console.log('url: ' + url)
+					var https = url.substring(0, 5)
+					if(https == '/file') {
+						var http_url = 'http://chatbot.iviet.com' + url
+					}
+					else {
+						http_url = url
+					}
+					console.log('url link: ' + http_url);
+					if(isPlaystreamPlaying === true) {
+						backupUrl = http_url
+							//console.log('we have a link url which need to play');
+					}
+					else {
+						exec(`wget --no-check-certificate ${http_url} -O - | mpg123 -`)
+					}
+				}
+			})
+		}
+
+		if (directive.header.namespace == "Calling") {
+			if(music_manager.isMusicPlaying == true) {
+				music_manager.eventsHandler(events.Pause)
+			}
+
+			exec_command(`m`);
+			setTimeout(() => {
+				exec_command(`sip:10015@35.240.201.210;transport=tcp`);
+			}, 100);
+		}
+
+	});
+
+}
+//Code and state may be one of the following:
+//0: 'unknown'
+// 10: 'asleep'
+// 20: 'disconnected'
+// 30: 'disconnecting'
+// 40: 'connecting'
+// 50: 'connected_local'
+// 60: 'connected_site'
+// 70: 'connected_global'
+const dbus = require('dbus-native')
+var bus = dbus.systemBus()
+var services = bus.getService('org.freedesktop.NetworkManager')
+function network_manger() {
+	services.getInterface(
+				'/org/freedesktop/NetworkManager', 
+				'org.freedesktop.NetworkManager', function(err, iface) {
+		if(err) console.error(err)
+
+		iface.on('StateChanged', function(value) {
+			//console.log('state: ' + value)
+			if(value >= 60) {
+				console.log('probably connected to the internet')
+				client_manager()
+				wifi_setup()
+			}
+			else {
+				console.log('probably not connected to the internet')
+			}
+		})
+	})
+}
+
 /**
  * Main
  *
@@ -633,23 +669,38 @@ async function main() {
 		// else {
 		// 	await ioctl.OutputToSpeaker()
 		// }
+		require('dns').resolve('www.google.com', function(err) {
+			if(err) {
+				console.log('No internet connection')
+				exec(`nmcli con up dg-ap`)
+				Buffer_UserEvent(WIFI_DISCONNECTED)
+			}
+			else {
+				console.log('Internet Connected')
+				client_manager()
+				setTimeout(() => {
+					maikaowk_start()
+				}, 3000);
+			}
+		})
 		await ioctl.OutputToSpeaker()
 		setTimeout(() => {
 			exec(`aplay ${current_path}/Sounds/${'boot_sequence_intro_1.wav'}`).on('exit', async() => {
 				exec(`aplay ${current_path}/Sounds/${'hello_VA.wav'}`).on('exit', async() => {
-					maikaowk_start()
+					//maikaowk_start()
 				})
 			})
 		}, 1000);
 		await bluetooth_init()
 		event_watcher()
+		network_manger()
 		//Output_Handler()
 		setTimeout(() => {
 			console.log('auto agent registered');
 			exec(`python ${current_path}/agent.py`)
 			//check client connection
-			if(clientIsOnline === false)
-				Buffer_UserEvent(CLIENT_ERROR)
+			// if(clientIsOnline === false)
+			// 	Buffer_UserEvent(CLIENT_ERROR)
 		}, 3000);
 	})
 }
@@ -722,12 +773,14 @@ async function Buffer_ButtonEvent(command) {
 	}
 }
 
-function error_record() {
-	ioctl.reset()
-	setTimeout(async() => {
-		//error record
-		await ioctl.Transmit(USER_EVENT, ERROR_RECORD)
-	}, 1500);
+function wifi_setup() {
+	Buffer_UserEvent(WIFI_CONNECTED)
+	setTimeout(() => {
+		Buffer_UserEvent(ERROR_RECORD)
+		setTimeout(async() => {
+			maikaowk_start()
+		}, 1000);
+	}, 3000);
 }
 
 function reset_micarray() {
