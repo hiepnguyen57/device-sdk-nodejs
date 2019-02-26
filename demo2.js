@@ -353,7 +353,7 @@ function event_watcher() {
 		if (err) {
 			throw err;
 		}
-		console.log('Wakeword detected')
+		//console.log('Wakeword detected')
 		ioctl.Transmit(USER_EVENT, WAKEWORD_START)
 		ButtonEvent(WAKEWORD_START);
 	})

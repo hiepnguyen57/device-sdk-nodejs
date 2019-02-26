@@ -16,7 +16,7 @@ const i2c1_forceAccess = i2c.openSync(1, {forceAccess: true})
 function pulse() {
 	pin67.writeSync(1)
 	pin67.writeSync(0)
-	delay(10)
+	//delay(10)
 	pin67.writeSync(1)
 }
 
