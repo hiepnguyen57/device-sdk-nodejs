@@ -3,7 +3,7 @@
 const readline = require('readline');
 const rl = readline.createInterface(process.stdin, process.stdout);
 const path = require('path');
-const config = require('./config.json');
+const config = require('./conf/config.json');
 const util = require('util');
 const BinaryClient = require('binaryjs').BinaryClient;
 const eventGenerator = require('./event');
@@ -27,10 +27,10 @@ function exec_command(input) {
 /* Imports the Google Cloud client library */
 const speech = require('@google-cloud/speech');
 const current_path = require('path').dirname(require.main.filename);
-process.env['GOOGLE_APPLICATION_CREDENTIALS'] = `${current_path}/credentials.json`;
+process.env['GOOGLE_APPLICATION_CREDENTIALS'] = `${current_path}/conf/credentials.json`;
 
 var rootCas = require('ssl-root-cas').create();
-rootCas.addFile(path.join(__dirname, './gd_bundle-g2-g1.crt'));
+rootCas.addFile(path.join(__dirname, './conf/gd_bundle-g2-g1.crt'));
 
 /* will work with all https requests will all libraries (i.e. request.js) */
 require('https').globalAgent.options.ca = rootCas;

@@ -11,7 +11,7 @@ var   sem               = require('semaphore')(1);
 const grpc              = require('grpc');
 const lame              = require('lame');
 const util              = require('util');
-const config            = require('./config.json');
+const config            = require('./conf/config.json');
 const uuidv1            = require('uuid/v1');
 const wav               = require('wav');
 const Stream            = require('stream');
@@ -63,8 +63,8 @@ const LED_CALLING = 0x3D
 const current_path = require('path').dirname(require.main.filename);
 
 /* Private variables----------------------------------------------------------*/
-process.env['GOOGLE_APPLICATION_CREDENTIALS'] = `${current_path}/credentials.json`;
-rootCas.addFile(path.join(__dirname, './gd_bundle-g2-g1.crt'));
+process.env['GOOGLE_APPLICATION_CREDENTIALS'] = `${current_path}/conf/credentials.json`;
+rootCas.addFile(path.join(__dirname, './conf/gd_bundle-g2-g1.crt'));
 
 /* will work with all https requests will all libraries (i.e. request.js) */
 require('https').globalAgent.options.ca = rootCas;
