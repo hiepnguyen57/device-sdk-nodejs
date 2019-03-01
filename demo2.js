@@ -24,14 +24,13 @@ var music_manager 		= require('./music_player').getMusicManager()
 const bluetooth_discoverable = require('./bluetooth').bluetooth_discoverable
 const bluetooth_init 	= require('./bluetooth').bluetooth_init
 const events 			= require('./music_player').events
-const amixer 			= require('./amixer')
 var bluez_event 		= require('./bluetooth').bluez_event
 var bluetooth 			= require('./bluetooth').bluetooth
 var bluealsa_aplay_connect = require('./bluetooth').bluealsa_aplay_connect
 var bluealsa_aplay_disconnect = require('./bluetooth').bluealsa_aplay_disconnect
+const playurl 				= require('./playurlStream.js')
+const command 				= require('./command.js')
 const i2c2 = i2c.openSync(2)
-const wakeword = require('./wakeword.js')
-//const pjsua 			= spawn('pjsua', ['--config-file', '/home/root/music-player/sip.cfg']);
 
 /* Imports the Google Cloud client library */
 const speech = require('@google-cloud/speech');
@@ -42,15 +41,6 @@ rootCas.addFile(path.join(__dirname, './conf/gd_bundle-g2-g1.crt'));
 
 /* Creates a client */
 const speech_client 	= new speech.SpeechClient();
-
-// pjsua.stdin.setEncoding('utf8');
-// pjsua.stdout.on('data', (data) => {
-// 	console.log(data.toString('utf8'));
-// });
-
-// function exec_command(input) {
-// 	pjsua.stdin.write(`${input}\n`);
-// }
 
 /* will work with all https requests will all libraries (i.e. request.js) */
 require('https').globalAgent.options.ca = rootCas;
@@ -73,37 +63,7 @@ const gpio30 = new gpio(30, 'in', 'both', {debounceTimeout: 10});
 // Export gpio88 as an interrupt generating input with a debounceTimeout of 10
 const gpio88 = new gpio(88, 'in', 'rising', {debounceTimeout: 10});
 
-const I2C_ADDRESS = 0x68;
-const BUFF_SIZE = 0x02
-const LED_RING = 0x00
-const MIC_ARRAY = 0x01
-const CYPRESS_BUTTON = 0x02
-const USER_EVENT = 0x03
-const VOLUME_UP = 0x20
-const VOLUME_DOWN = 0x21
-const VOLUME_MUTE = 0x22
-const WAKEWORD_START = 0x23
-const WAKEWORD_STOP = 0x24
-const VOLUME_UNMUTE = 0x25
-const MICROPHONE_MUTE = 0x26
-const MICROPHONE_UNMUTE = 0x27
-const WIFI_CONNECTED = 0x40
-const WIFI_DISCONNECTED = 0x41
-const ALL_LED_ON = 0x42
-const BLE_ON = 0x43
-const BLE_OFF = 0x44
-const USB_AUDIO = 0x45
-const CLIENT_ERROR = 0x46
-const LED_DIMMING = 0x30
-const LED_CIRCLE = 0x31
-const LED_EMPTY	= 0x32
-const LED_ALLCOLORS = 0x33
-const LED_PATTERN = 0x34
-const COLOR_WHEEL = 0x35
-const CLEAN_ALL = 0x36
-const LED_START	= 0x38
-const LED_STOP	= 0x39 
-
+const buffers =  require('./buffers.js').buffers
 var RxBuff = new Buffer([0x00, 0x00])
 
 
@@ -121,7 +81,6 @@ var isBlueResume = false;
 var isPlaystreamPlaying = false;
 var musicPlayStreamResume = false
 
-var volumebackup
 
 var backupUrl = ''
 var urlcount = 0
@@ -201,7 +160,7 @@ async function startStream(eventJSON) {
 	// setTimeout(function () {
 	// 	console.log('Timeout recording!!!!');
 	// 	stopStream();
-	// }, 4000)
+	// }, 10000)
 }
 
 /**
@@ -211,17 +170,14 @@ async function startStream(eventJSON) {
  */
 async function stopStream() {
 	if(clientIsOnline === true){
-		//await amixer.volume_control('fadeOutVol')
-		amixer.volume_control(`setvolume ${volumebackup}`)
+		command.fadeOutVolume()
 		console.log('stop stream');
 		recognizeStream.end();
 		recordingStream.stop();
 		//file.end()
 		clientStream.end();
-		//console.time('measure-received-url')
-		//send end of sentence to mic-array
-		UserEvent(WAKEWORD_STOP)
-		//music_manager.eventsHandler(events.FadeOutVolume)
+		//send the end of sentence to mic-array
+		command.UserEvent(buffers.WAKEWORD_STOP)
 		isRecording = false
 	}
 }
@@ -232,24 +188,10 @@ async function webPlayNewSong(serverStream, url)
 	serverStream.on('data', (url) =>{
 		var intro_url = 'http://chatbot.iviet.com' + url
 		console.log(intro_url);
-		exec(`wget --no-check-certificate ${intro_url} -O - | mpg123 -`).on('exit', async() => {
-			wakeword.start()
-		})
+		playurl.intro(intro_url)
 	})
 	music_manager.url = 'http://music.olli.vn:50052/streaming?url=' + url
 	music_manager.eventsHandler(events.W_NewSong)
-}
-
-function play_audioqueue() {
-	return new Promise(async resolve => {
-		if(AudioQueue.length > 0) {
-			var url;
-			url = AudioQueue.shift();
-			console.log(`-->url: ${url}`);
-			await exec_sync(`wget --no-check-certificate ${url} -O - | mpg123 -`);
-		}
-		resolve()
-	})
 }
 
 function playStream(serverStream) {
@@ -289,35 +231,20 @@ function playStream(serverStream) {
 						}
 						//reset flags
 						urlcount = 0
-						wakeword.start()
 					}
 					else {//have many link url
-						await play_audioqueue()
+						await playurl.audioqueue(AudioQueue)
 						//reset flags
 						urlcount = 0;
 						if(musicPlayStreamResume === true) {
 							music_manager.eventsHandler(events.Resume)
 						}
-						wakeword.start()
 					}
-					//todo: below used to expect speech event
-					// isPlaystreamPlaying = false
-					// if(backupUrl != '') {
-					// 	playExpectSpeech()
-					// }
 				})
 			}
 		}
 	})
 }
-
-// async function playExpectSpeech() {
-// 	console.log('backupUrl: ' + backupUrl);
-// 	exec(`${current_path}/playurl ${backupUrl}`).on('exit', async() => {
-// 		backupUrl = ''
-// 	})
-// }
-
 
 /**
  * When quit app need to do somethings.
@@ -334,6 +261,25 @@ process.on('SIGINT', function () {
 	quit();
 });
 
+async function wakeword_detected() {
+	//recording audio
+    if(isRecording != true) {
+        if(clientIsOnline === true) {
+        	await command.fadeInVolume()
+            console.log("Begin Recording")
+            isRecording = true;
+            var eventJSON = eventGenerator.setSpeechRecognizer(onSession = onSession, dialogRequestId = dialogRequestId)
+            eventJSON['sampleRate'] = 16000;
+            if(onSession && lastInitiator) {
+                eventJSON.event.payload.initiator = lastInitiator;
+                lastInitiator = null;
+            }
+            onSession = false;
+            dialogRequestId = null;
+            startStream(eventJSON)
+        }
+    }
+}
 
 function event_watcher() {
 	gpio48.watch((err) => {
@@ -341,21 +287,28 @@ function event_watcher() {
 			throw err;
 		}
 		//console.log('Receiving data from Mic-array')
-		i2c2.i2cReadSync(I2C_ADDRESS, BUFF_SIZE, RxBuff, function(error) {
+		i2c2.i2cReadSync(buffers.I2C_ADDRESS, buffers.BUFF_SIZE, RxBuff, function(error) {
 			if(err) {
 				console.log('error transfer');
 			}
 		})
-		SwitchContextBuffer(RxBuff[0], RxBuff[1])
+		if((RxBuff[0] === buffers.BUTTON) || (RxBuff[1] === buffers.WAKEWORD_START)) {
+			//wakeword button event here
+			wakeword_detected()
+		}
+		else{
+			command.SwitchContextBuffer(RxBuff[0], RxBuff[1])
+		}
 	})
 
 	gpio88.watch(async(err) => {
 		if (err) {
 			throw err;
 		}
+		//voice keyword detected
 		//console.log('Wakeword detected')
-		ioctl.Transmit(USER_EVENT, WAKEWORD_START)
-		ButtonEvent(WAKEWORD_START);
+		ioctl.Transmit(buffers.USER_EVENT, buffers.WAKEWORD_START)
+		wakeword_detected()
 	})
 
 }
@@ -421,7 +374,6 @@ function client_manager() {
 				if(musicResume === true) {
 						music_manager.eventsHandler(events.Resume)
 				}
-				wakeword.start()
 			})
 		}
 
@@ -447,7 +399,6 @@ function client_manager() {
 		if (directive.header.namespace == "PlaybackController" && directive.header.name == "PauseCommandIssued") {
 			console.log('Pause command');
 			music_manager.eventsHandler(events.Pause)
-			wakeword.start()
 			return
 		}
 
@@ -457,7 +408,6 @@ function client_manager() {
 		if (directive.header.namespace == "PlaybackController" && directive.header.name == "ResumeCommandIssued") {
 			console.log('Resume Command');
 			music_manager.eventsHandler(events.Resume)
-			wakeword.start()
 			return
 		}
 
@@ -471,12 +421,11 @@ function client_manager() {
 		if (directive.header.namespace == "Speaker") {
 			if (directive.header.name == "AdjustVolume") {
 				if (directive.payload.volume >= 0) {
-					ButtonEvent(VOLUME_UP)
+					command.ButtonEvent(buffers.VOLUME_UP)
 				}
 				else {
-					ButtonEvent(VOLUME_DOWN)
+					command.ButtonEvent(buffers.VOLUME_DOWN)
 				}
-				wakeword.start()
 			}
 
 			/* Volume Mute. */
@@ -484,13 +433,12 @@ function client_manager() {
 				if (directive.payload.mute == true)
 				{
 					/* Mute */
-					ButtonEvent(VOLUME_MUTE)
+					command.ButtonEvent(buffers.VOLUME_MUTE)
 				}
 				else {
 					/* Unmute */
-					ButtonEvent(VOLUME_UNMUTE)
+					command.ButtonEvent(buffers.VOLUME_UNMUTE)
 				}
-				wakeword.start()
 			}
 			return
 		}
@@ -507,7 +455,7 @@ function client_manager() {
 
 			if (directive.header.name == "ConnectByDeviceId") {
 				await bluetooth_discoverable('on')
-				UserEvent(BLE_ON)
+				command.UserEvent(buffers.BLE_ON)
 				exec(`aplay ${current_path}/Sounds/${'bluetooth_connected_322896.wav'}`).on('exit', async() => {
 
 					if(isBlueResume != true) {
@@ -520,11 +468,10 @@ function client_manager() {
 					else {
 						isBlueResume = false;//reset flags
 					}
-					wakeword.start()
 				})
 			}
 			else if (directive.header.name == "DisconnectDevice") {
-				UserEvent(BLE_OFF)
+				command.UserEvent(buffers.BLE_OFF)
 				await bluetooth_discoverable('off')
 	
 				if(isBlueResume != true) {
@@ -537,7 +484,6 @@ function client_manager() {
 				else {
 					isBlueResume = false;//reset flags
 				}
-				wakeword.start()
 			}
 			return
 		}
@@ -586,7 +532,7 @@ function client_manager() {
 							//console.log('we have a link url which need to play');
 					}
 					else {
-						exec(`wget --no-check-certificate ${http_url} -O - | mpg123 -`)
+						playurl.intro(http_url)
 					}
 				}
 			})
@@ -596,11 +542,6 @@ function client_manager() {
 			if(music_manager.isMusicPlaying == true) {
 				music_manager.eventsHandler(events.Pause)
 			}
-
-			exec_command(`m`);
-			setTimeout(() => {
-				exec_command(`sip:10015@35.240.201.210;transport=tcp`);
-			}, 100);
 		}
 
 	});
@@ -658,20 +599,18 @@ async function main() {
 			if(err) {
 				console.log('No internet connection')
 				//exec(`nmcli con up dg-ap`)
-				UserEvent(WIFI_DISCONNECTED)
+				command.UserEvent(buffers.WIFI_DISCONNECTED)
 			}
 			else {
 				console.log('Internet Connected')
 				client_manager()
-				setTimeout(() => {
-					wakeword.start()
-				}, 3000);
 			}
 		})
 		await ioctl.OutputToSpeaker()
 		setTimeout(() => {
 			exec(`aplay ${current_path}/Sounds/${'boot_sequence_intro_1.wav'}`).on('exit', async() => {
 				exec(`aplay ${current_path}/Sounds/${'hello_VA.wav'}`).on('exit', async() => {
+					exec(`/home/root/wakeword-snsr -t /home/root/model/spot-hbg-enUS-1.3.0-m.snsr`)
 				})
 			})
 		}, 1000);
@@ -682,178 +621,19 @@ async function main() {
 		setTimeout(() => {
 			console.log('auto agent registered');
 			exec(`python ${current_path}/agent.py`)
-			//check client connection
-			// if(clientIsOnline === false)
-			// 	UserEvent(CLIENT_ERROR)
 		}, 3000);
 	})
 }
 
-async function ButtonEvent(command) {
-	var current_vol
 
-	switch(command) {
-		case VOLUME_UP:
-			current_vol = await amixer.volume_control('volumeup')
-			//current_vol = await amixer.volume_control('getvolume')
-			await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_UP, current_vol)
-			console.log('volume up')
-			console.log('current volume: ' + current_vol);
-			break;
-		case VOLUME_DOWN:
-			current_vol = await amixer.volume_control('volumedown')
-			//current_vol = await amixer.volume_control('getvolume')
-			if(current_vol < 30) {
-				await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_MUTE, current_vol)
-			}
-			else{
-				await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_DOWN, current_vol)
-			}
-			console.log('volume down')
-			console.log('current volume: ' + current_vol);
-			break;
-		case VOLUME_MUTE:
-			await ioctl.mute()
-			await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_MUTE)
-			console.log('volume mute')
-			break;
-		case VOLUME_UNMUTE:
-			current_vol = await amixer.volume_control('getvolume')
-			await ioctl.unmute()
-			await ioctl.Transmit(CYPRESS_BUTTON, VOLUME_UNMUTE, current_vol)
-			console.log('volume unmute')
-			break;
-		case WAKEWORD_START:
-			//recording audio
-			if(isRecording != true) {
-				if(clientIsOnline === true) {
-					//await amixer.volume_control('fadeInVol');
-					wakeword.stop()
-					volumebackup = await amixer.volume_control('getvolume')
-					await amixer.volume_control('setvolume 20')
-					//music_manager.eventsHandler(events.FadeInVolume)
-					console.log("Begin Recording")
-					isRecording = true;
-					var eventJSON = eventGenerator.setSpeechRecognizer(onSession = onSession, dialogRequestId = dialogRequestId)
-					eventJSON['sampleRate'] = 16000;
-					if(onSession && lastInitiator) {
-						eventJSON.event.payload.initiator = lastInitiator;
-						lastInitiator = null;
-					}
-					onSession = false;
-					dialogRequestId = null;
-					startStream(eventJSON)
-				}
-			}
-			break;
-	}
-}
-
-
-async function Ledring_Effect(command, state) {
-	switch(command) {
-		case LED_DIMMING:
-			await ioctl.Transmit(LED_RING, LED_DIMMING, state)
-			console.log('LED DIMMING ' + state);
-			break;
-		case LED_CIRCLE:
-			await ioctl.Transmit(LED_RING, LED_CIRCLE, state)
-			console.log('LED CIRCLE ' + state);
-			break;
-		case LED_EMPTY:
-			await ioctl.Transmit(LED_RING, LED_EMPTY, state)
-			console.log('LED EMPTY ' + state);
-			break;
-		case LED_ALLCOLORS:
-			await ioctl.Transmit(LED_RING, LED_ALLCOLORS, state)
-			console.log('LED ALLCOLORS ' + state);
-			break;
-		case LED_PATTERN:
-			await ioctl.Transmit(LED_RING, LED_PATTERN, state)
-			console.log('LED PATTERN ' + state);
-			break;
-		case COLOR_WHEEL:
-			await ioctl.Transmit(LED_RING, COLOR_WHEEL, state)
-			console.log('LED COLOR WHEEL ' + state);
-			break;
-		case CLEAN_ALL:
-			await ioctl.Transmit(LED_RING, CLEAN_ALL);
-			console.log('Led Ring clear effect');
-			break;
-	}
-}
-
-async function UserEvent(command) {
-	switch(command) {
-		case WIFI_CONNECTED:
-			await ioctl.Transmit(USER_EVENT, WIFI_CONNECTED)
-			console.log('wifi was connected')
-			break;
-		case WIFI_DISCONNECTED:
-			await ioctl.Transmit(USER_EVENT, WIFI_DISCONNECTED)
-			console.log('wifi was disconnected')
-			break;
-		case WAKEWORD_STOP:
-			await ioctl.Transmit(USER_EVENT, WAKEWORD_STOP)
-			console.log('wakeword end')
-			break;
-		case MICROPHONE_MUTE:
-			await ioctl.Transmit(USER_EVENT, MICROPHONE_MUTE)
-			console.log('microphone mute')
-			break;
-		case MICROPHONE_UNMUTE:
-			await ioctl.Transmit(USER_EVENT, MICROPHONE_UNMUTE)
-			console.log('microphone unmute')
-			break;
-		case VOLUME_MUTE:
-			await ioctl.mute()
-			ioctl.Transmit(USER_EVENT, VOLUME_MUTE)
-			console.log('muted');
-			break;
-		case ALL_LED_ON:
-			await ioctl.Transmit(USER_EVENT, ALL_LED_ON);
-			console.log('All led is ON');
-			break;
-		case BLE_ON:
-			await ioctl.Transmit(USER_EVENT, BLE_ON);
-			console.log('turn on bluetooth');
-			break;
-		case BLE_OFF:
-			await ioctl.Transmit(USER_EVENT, BLE_OFF)
-			console.log('turn off bluetooth');
-			break;
-		case USB_AUDIO:
-			await ioctl.Transmit(USER_EVENT, USB_AUDIO)
-			console.log('enable usb mic array');
-			break;
-		case CLIENT_ERROR:
-			await ioctl.Transmit(USER_EVENT, CLIENT_ERROR)
-			console.log('client error');
-			break;
-	}
-}
-
-async function SwitchContextBuffer(target, command) {
-	switch(target) {
-		case CYPRESS_BUTTON:
-			await ButtonEvent(command)
-			break;
-		case USER_EVENT:
-			await UserEvent(command)
-			break;
-	}
-}
 
 function WifiConnected() {
 	//stop effect on ledring
-	Ledring_Effect(LED_PATTERN, 0x39)
-	UserEvent(WIFI_CONNECTED)
+	command.Ledring_Effect(buffers.LED_PATTERN, 0x39)
+	command.UserEvent(buffers.WIFI_CONNECTED)
 	setTimeout(() => {
 		//enable usb audio
 		UserEvent(USB_AUDIO)
-		setTimeout(async() => {
-			wakeword.start()
-		}, 1000);
 	}, 3000);
 }
 
@@ -861,7 +641,7 @@ function apps_start() {
 	ioctl.reset()
 	setTimeout(async() => {
 		//enable usb audio
-		await ioctl.Transmit(USER_EVENT, ALL_LED_ON);
+		await ioctl.Transmit(buffers.USER_EVENT, buffers.ALL_LED_ON);
 	}, 1500);
 }
 

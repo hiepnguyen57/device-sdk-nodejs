@@ -1,0 +1,35 @@
+
+const buffers = {
+    I2C_ADDRESS:            0x68,
+    BUFF_SIZE:              0x02,
+    LED_RING:               0x00,
+    MIC_ARRAY:              0x01,
+    BUTTON:                 0x02,
+    USER_EVENT:             0x03,
+    VOLUME_UP:              0x20,
+    VOLUME_DOWN:            0x21,
+    VOLUME_MUTE:            0x22,
+    WAKEWORD_START:         0x23,
+    WAKEWORD_STOP:          0x24,
+    VOLUME_UNMUTE:          0x25,
+    MICROPHONE_MUTE:        0x26,
+    MICROPHONE_UNMUTE:      0x27,
+    WIFI_CONNECTED:         0x40,
+    WIFI_DISCONNECTED:      0x41,
+    ALL_LED_ON:             0x42,
+    BLE_ON:                 0x43,
+    BLE_OFF:                0x44,
+    USB_AUDIO:              0x45,
+    CLIENT_ERROR:           0x46,
+    LED_DIMMING:            0x30,
+    LED_CIRCLE:             0x31,
+    LED_EMPTY:              0x32,
+    LED_ALLCOLORS:          0x33,
+    LED_PATTERN:            0x34,
+    COLOR_WHEEL:            0x35,
+    CLEAN_ALL:              0x36,
+    LED_START:              0x38,
+    LED_STOP:               0x39
+}
+
+module.exports.buffers = buffers
