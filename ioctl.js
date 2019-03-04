@@ -1,6 +1,6 @@
 const i2c = require('i2c-bus');
 const gpio = require('onoff').Gpio
-const delay = require('delay')
+//const delay = require('delay')
 const pin67 = new gpio(67, 'out')
 //const pin66 = new gpio(66, 'out')
 var exec = require('child_process').exec

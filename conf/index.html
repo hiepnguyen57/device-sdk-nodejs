@@ -1,0 +1,127 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <style>
+    .dropbtn {
+        background-color: #4CAF50;
+        color: white;
+        padding: 16px;
+        font-size: 16px;
+        border: none;
+        cursor: pointer;
+    }
+
+    .dropbtn:hover, .dropbtn:focus {
+        background-color: #3e8e41;
+    }
+
+    .dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: #f9f9f9;
+        min-width: 160px;
+        overflow: auto;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    }
+
+    .dropdown-content a {
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+    }
+
+    .dropdown a:hover {background-color: #f1f1f1}
+
+    .show {display:block;}
+    </style>
+</head>
+
+<body>
+    <h1>OMNI WIFI MANAGER </h1>
+    <div class="dropdown">
+    <button onclick='WifiFunction()' class="dropbtn">Scan Wifi</button>
+      <div id="myDropdown" class="dropdown-content">
+      </div>
+    </div><br>
+    </div><br>
+    </div><br>
+    <button onclick='GetIPaddr()' class="dropbtn">Show IP</button>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+    var obj;
+    var socket = io();
+
+    socket.on('error', function(msg){
+        console.log(msg)
+        alert(msg); 
+    });
+
+    socket.on('ip', function(ipaddr) {
+        console.log('IP is: ' + ipaddr)
+        alert(ipaddr)
+    })
+
+    function setpwd(id) {
+        var password = prompt("Please enter your wifi password", "");
+        socket.emit('ssid', obj.wifi_list[id].SSID);
+        socket.emit('password', password);
+        if(password != null)
+        {
+            socket.emit('setting', 'OK');
+        }
+        console.log("select SSID " + obj.wifi_list[id].SSID);
+    }
+
+    function WifiFunction() {
+        var xhttp;
+
+        if (window.XMLHttpRequest) {
+            xhttp = new XMLHttpRequest();
+        } else {
+            xhttp = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+
+        xhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+                document.getElementById('myDropdown').classList.toggle("show");
+                obj = JSON.parse(this.responseText);
+
+                var i;
+                document.getElementById("myDropdown").innerHTML = "";
+                for (i = 0; i < obj.wifi_list.length; i++) {
+                    document.getElementById("myDropdown").innerHTML += "<a onclick='setpwd("+ i.toString() +")'>" + obj.wifi_list[i].SSID + "</a>";
+                }
+            }
+        }
+        xhttp.open("GET", 'wifi_list.json', true);
+        xhttp.send();
+    }
+
+    function GetIPaddr() {
+        socket.emit('getIP')
+        console.log('request IP Address from device')
+    }
+
+    window.onclick = function(event) {
+    if (!event.target.matches('.dropbtn')) {
+
+        var dropdowns = document.getElementsByClassName("dropdown-content");
+        var i;
+        for (i = 0; i < dropdowns.length; i++) {
+          var openDropdown = dropdowns[i];
+          if (openDropdown.classList.contains('show')) {
+            openDropdown.classList.remove('show');
+          }
+        }
+      }
+    }
+    </script>
+
+</body>
+</html>
