@@ -263,22 +263,22 @@ process.on('SIGINT', function () {
 
 async function wakeword_detected() {
 	//recording audio
-    if(isRecording != true) {
-        if(clientIsOnline === true) {
-        	await command.fadeInVolume()
-            console.log("Begin Recording")
-            isRecording = true;
-            var eventJSON = eventGenerator.setSpeechRecognizer(onSession = onSession, dialogRequestId = dialogRequestId)
-            eventJSON['sampleRate'] = 16000;
-            if(onSession && lastInitiator) {
-                eventJSON.event.payload.initiator = lastInitiator;
-                lastInitiator = null;
-            }
-            onSession = false;
-            dialogRequestId = null;
-            startStream(eventJSON)
-        }
-    }
+	if(isRecording != true) {
+		if(clientIsOnline === true) {
+			await command.fadeInVolume()
+			console.log("Begin Recording")
+			isRecording = true;
+			var eventJSON = eventGenerator.setSpeechRecognizer(onSession = onSession, dialogRequestId = dialogRequestId)
+			eventJSON['sampleRate'] = 16000;
+			if(onSession && lastInitiator) {
+				eventJSON.event.payload.initiator = lastInitiator;
+				lastInitiator = null;
+			}
+			onSession = false;
+			dialogRequestId = null;
+			startStream(eventJSON)
+		}
+	}
 }
 
 function event_watcher() {
@@ -292,7 +292,7 @@ function event_watcher() {
 				console.log('error transfer');
 			}
 		})
-		if((RxBuff[0] === buffers.BUTTON) || (RxBuff[1] === buffers.WAKEWORD_START)) {
+		if((RxBuff[0] === buffers.BUTTON) && (RxBuff[1] === buffers.WAKEWORD_START)) {
 			//wakeword button event here
 			wakeword_detected()
 		}

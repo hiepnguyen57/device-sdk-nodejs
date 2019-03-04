@@ -3,7 +3,7 @@ const gpio = require('onoff').Gpio
 const delay = require('delay')
 const pin67 = new gpio(67, 'out')
 //const pin66 = new gpio(66, 'out')
-var execFile = require('child_process').execFile
+var exec = require('child_process').exec
 const I2C_ADDRESS = 0x68;
 const BUFF_SIZE = 0x03
 const CODEC_ADDR = 0x18
@@ -21,11 +21,8 @@ function pulse() {
 }
 
 function reset() {
-	execFile('/bin/bash', ['/home/root/container/reset.sh'], function(err, stdout, stderr) {
-		if (err) {
-			console.log('exec error:', err);
-		}
-	})
+	exec(`echo 0 > /sys/class/gpio/gpio66/value`)
+	exec(`echo 1 > /sys/class/gpio/gpio66/value`)
 }
 
 function Transmit(target, command, value) {
