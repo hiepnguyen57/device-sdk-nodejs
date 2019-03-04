@@ -10,6 +10,7 @@
     "dbus-native": "^0.2.5",
     "delay": "^4.0.0",
     "execa": "^1.0.0",
+    "express": "^4.16.4",
     "fifo": "^2.3.0",
     "i2c-bus": "^4.0.1",
     "keypress": "^0.2.1",
@@ -21,11 +22,13 @@
     "node-record-lpcm16": "^0.3.1",
     "onoff": "^3.2.1",
     "pumpify": "^1.5.1",
+    "socket.io": "^2.2.0",
     "speaker": "^0.4.1",
     "ssl-root-cas": "^1.2.5",
     "stream-events": "^1.0.4",
     "through2": "^2.0.3",
-    "wav": "^1.0.2"
+    "wav": "^1.0.2",
+    "wifi-control": "^2.0.1"
   },
   "devDependencies": {},
   "scripts": {

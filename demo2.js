@@ -30,6 +30,8 @@ var bluealsa_aplay_connect = require('./bluetooth').bluealsa_aplay_connect
 var bluealsa_aplay_disconnect = require('./bluetooth').bluealsa_aplay_disconnect
 const playurl 				= require('./playurlStream.js')
 const command 				= require('./command.js')
+const wakeword 				= require('./wakeword.js')
+const wifi 				= require('./wifi.js')
 const i2c2 = i2c.openSync(2)
 
 /* Imports the Google Cloud client library */
@@ -547,8 +549,8 @@ function client_manager() {
 	});
 
 }
-//Code and state may be one of the following:
-//0: 'unknown'
+// Code and state may be one of the following:
+// 0: 'unknown'
 // 10: 'asleep'
 // 20: 'disconnected'
 // 30: 'disconnecting'
@@ -610,10 +612,11 @@ async function main() {
 		setTimeout(() => {
 			exec(`aplay ${current_path}/Sounds/${'boot_sequence_intro_1.wav'}`).on('exit', async() => {
 				exec(`aplay ${current_path}/Sounds/${'hello_VA.wav'}`).on('exit', async() => {
-					exec(`/home/root/wakeword-snsr -t /home/root/model/spot-hbg-enUS-1.3.0-m.snsr`)
+					wakeword.start()
 				})
 			})
 		}, 1000);
+		wifi.Setup()
 		await bluetooth_init()
 		event_watcher()
 		network_manger()
@@ -627,13 +630,17 @@ async function main() {
 
 
 
-function WifiConnected() {
+async function WifiConnected() {
 	//stop effect on ledring
 	command.Ledring_Effect(buffers.LED_PATTERN, 0x39)
 	command.UserEvent(buffers.WIFI_CONNECTED)
+	await wakeword.stop()
 	setTimeout(() => {
-		//enable usb audio
-		UserEvent(USB_AUDIO)
+		//restart usb audio
+		command.UserEvent(buffers.USB_AUDIO)
+		setTimeout(async() => {
+			await wakeword.start()
+		},1000)
 	}, 3000);
 }
 
