@@ -2,7 +2,7 @@ var WiFiControl = require('wifi-control')
 var Transmit =  require('./ioctl').Transmit
 // Initialize wifi-control package with verbose output
 WiFiControl.init({
-    debug: true,
+    debug: false,
     iface: 'wlan0',
 });
 
