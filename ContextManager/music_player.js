@@ -57,7 +57,7 @@ class MusicManager {
 			this.eventsHandler(events.FadeInVolume)
 			setTimeout(async() => {
 				//new device notification
-				exec(`aplay ${current_path}/Sounds/${'VA_bluetooth_connected.wav'}`).on('exit', () => {
+				exec(`aplay ${current_path}/../Sounds/${'VA_bluetooth_connected.wav'}`).on('exit', () => {
 					this.eventsHandler(events.FadeOutVolume)
 				})
 			}, 100);

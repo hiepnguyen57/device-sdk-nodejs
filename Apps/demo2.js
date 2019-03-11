@@ -301,7 +301,7 @@ function event_watcher() {
 		}
 		//voice keyword detected
 		//console.log('Wakeword detected')
-		ioctl.Transmit(buffers.USER_EVENT, buffers.WAKEWORD_START)
+		command.UserEvent(buffers.WAKEWORD_START)
 		wakeword_detected()
 	})
 
@@ -639,8 +639,8 @@ async function WifiConnected() {
 function apps_start() {
 	ioctl.reset()
 	setTimeout(async() => {
-		//enable usb audio
-		await ioctl.Transmit(buffers.USER_EVENT, buffers.ALL_LED_ON);
+
+		command.UserEvent(buffers.ALL_LED_ON);
 	}, 1500);
 }
 

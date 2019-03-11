@@ -82,6 +82,9 @@ async function UserEvent(command) {
 			await ioctl.Transmit(buffers.USER_EVENT, buffers.WIFI_DISCONNECTED)
 			console.log('wifi was disconnected')
 			break;
+		case buffers.WAKEWORD_START:
+			await ioctl.Transmit(buffers.USER_EVENT, buffers.WAKEWORD_START)
+			console.log('wakeword start')
 		case buffers.WAKEWORD_STOP:
 			await ioctl.Transmit(buffers.USER_EVENT, buffers.WAKEWORD_STOP)
 			console.log('wakeword end')
