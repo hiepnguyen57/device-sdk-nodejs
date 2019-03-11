@@ -1,5 +1,5 @@
 var WiFiControl = require('wifi-control')
-var Transmit =  require('./ioctl').Transmit
+var Transmit =  require('./../i2c-control/ioctl').Transmit
 // Initialize wifi-control package with verbose output
 WiFiControl.init({
     debug: false,
@@ -19,7 +19,7 @@ var ssid
 
 function WifiSetup() {
     app.get('/', function(req, res) {
-        res.sendFile(path.join(__dirname+'/conf/index.html'))
+        res.sendFile(path.join(__dirname+'/index.html'))
     })
 
     app.get('/wifi_list.json', function (req, res) {

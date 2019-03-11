@@ -1,6 +1,6 @@
 const buffers =  require('./buffers.js').buffers
 const ioctl = require('./ioctl.js')
-const amixer = require('./amixer.js')
+const amixer = require('./../AdjustVolume/amixer.js')
 var volumebackup
 
 async function ButtonEvent(command) {

@@ -5,10 +5,10 @@ const rl 				= readline.createInterface(process.stdin, process.stdout);
 //var fifo 				= require('fifo')()
 var fs 					= require('fs')
 const path 				= require('path');
-const config 			= require('./conf/config.json');
+const config 			= require('./../conf/config.json');
 const util 				= require('util');
 const BinaryClient 		= require('binaryjs').BinaryClient;
-const eventGenerator 	= require('./event');
+const eventGenerator 	= require('./../event.js');
 const lame 				= require('lame');
 const Speaker 			= require('speaker');
 const event 			= require('events');
@@ -19,27 +19,21 @@ const { spawn } 		= require("child_process");
 const exec 				= require("child_process").exec;
 const i2c 				= require('i2c-bus')
 const gpio 				= require('onoff').Gpio
-var ioctl 				= require('./ioctl')
-var music_manager 		= require('./music_player').getMusicManager()
-const bluetooth_discoverable = require('./bluetooth').bluetooth_discoverable
-const bluetooth_init 	= require('./bluetooth').bluetooth_init
-const events 			= require('./music_player').events
-var bluez_event 		= require('./bluetooth').bluez_event
-var bluetooth 			= require('./bluetooth').bluetooth
-var bluealsa_aplay_connect = require('./bluetooth').bluealsa_aplay_connect
-var bluealsa_aplay_disconnect = require('./bluetooth').bluealsa_aplay_disconnect
-const playurl 				= require('./playurlStream.js')
-const command 				= require('./command.js')
-const wakeword 				= require('./wakeword.js')
-const wifi 				= require('./wifi.js')
+var ioctl 				= require('./../i2c-control/ioctl')
+var music_manager 		= require('./../ContextManager/music_player').getMusicManager()
+const events 			= require('./../ContextManager/music_player').events
+const playurl 				= require('./../MediaPlayer/playurlStream.js')
+const command 				= require('./../i2c-control/command.js')
+const wakeword 				= require('./../wakeword/wakeword.js')
+const wifi 				= require('./../Network/wifi.js')
 const i2c2 = i2c.openSync(2)
 
 /* Imports the Google Cloud client library */
 const speech = require('@google-cloud/speech');
 const current_path = require('path').dirname(require.main.filename);
-process.env['GOOGLE_APPLICATION_CREDENTIALS'] = `${current_path}/conf/credentials.json`;
+process.env['GOOGLE_APPLICATION_CREDENTIALS'] = `${current_path}/../conf/credentials.json`;
 var rootCas = require('ssl-root-cas').create();
-rootCas.addFile(path.join(__dirname, './conf/gd_bundle-g2-g1.crt'));
+rootCas.addFile(path.join(__dirname, './../conf/gd_bundle-g2-g1.crt'));
 
 /* Creates a client */
 const speech_client 	= new speech.SpeechClient();
@@ -65,7 +59,7 @@ const gpio30 = new gpio(30, 'in', 'both', {debounceTimeout: 10});
 // Export gpio88 as an interrupt generating input with a debounceTimeout of 10
 const gpio88 = new gpio(88, 'in', 'rising', {debounceTimeout: 10});
 
-const buffers =  require('./buffers.js').buffers
+const buffers =  require('./../i2c-control/buffers.js').buffers
 var RxBuff = new Buffer([0x00, 0x00])
 
 
@@ -78,8 +72,6 @@ var clientStream;
 var client;
 var recognizeStream;
 var isRecording = false;
-var isBluePlaying = false;
-var isBlueResume = false;
 var isPlaystreamPlaying = false;
 var musicPlayStreamResume = false
 
@@ -252,7 +244,7 @@ function playStream(serverStream) {
  * When quit app need to do somethings.
  */
 async function quit() {
-	await bluetooth_discoverable('off')
+	await music_manager.bluePlayer.bluecontrol.bluetooth_discoverable('off')
 	process.exit()
 }
 
@@ -372,7 +364,7 @@ function client_manager() {
 
 			//error_record
 			console.log('recording error!!!');
-			exec(`aplay ${current_path}/Sounds/${'donthearanything.wav'}`).on('exit', function() {
+			exec(`aplay ${current_path}/../Sounds/${'donthearanything.wav'}`).on('exit', function() {
 				if(musicResume === true) {
 						music_manager.eventsHandler(events.Resume)
 				}
@@ -456,11 +448,11 @@ function client_manager() {
 			}
 
 			if (directive.header.name == "ConnectByDeviceId") {
-				await bluetooth_discoverable('on')
+				await music_manager.bluePlayer.bluecontrol.bluetooth_discoverable('on')
 				command.UserEvent(buffers.BLE_ON)
-				exec(`aplay ${current_path}/Sounds/${'bluetooth_connected_322896.wav'}`).on('exit', async() => {
+				exec(`aplay ${current_path}/../Sounds/${'bluetooth_connected_322896.wav'}`).on('exit', async() => {
 
-					if(isBlueResume != true) {
+					if(music_manager.isBlueResume != true) {
 						setTimeout(() => {
 							if(musicResume === true) {
 								music_manager.eventsHandler(events.Resume)
@@ -468,15 +460,15 @@ function client_manager() {
 						}, 500);
 					}
 					else {
-						isBlueResume = false;//reset flags
+						music_manager.isBlueResume = false;//reset flags
 					}
 				})
 			}
 			else if (directive.header.name == "DisconnectDevice") {
 				command.UserEvent(buffers.BLE_OFF)
-				await bluetooth_discoverable('off')
+				await music_manager.bluePlayer.bluecontrol.bluetooth_discoverable('off')
 	
-				if(isBlueResume != true) {
+				if(music_manager.isBlueResume != true) {
 					setTimeout(() => {
 						if(musicResume === true) {
 							music_manager.eventsHandler(events.Resume)
@@ -484,7 +476,7 @@ function client_manager() {
 					}, 500);
 				}
 				else {
-					isBlueResume = false;//reset flags
+					music_manager.isBlueResume = false;//reset flags
 				}
 			}
 			return
@@ -610,20 +602,20 @@ async function main() {
 		})
 		await ioctl.OutputToSpeaker()
 		setTimeout(() => {
-			exec(`aplay ${current_path}/Sounds/${'boot_sequence_intro_1.wav'}`).on('exit', async() => {
-				exec(`aplay ${current_path}/Sounds/${'hello_VA.wav'}`).on('exit', async() => {
+			exec(`aplay ${current_path}/../Sounds/${'boot_sequence_intro_1.wav'}`).on('exit', async() => {
+				exec(`aplay ${current_path}/../Sounds/${'hello_VA.wav'}`).on('exit', async() => {
 					wakeword.start()
 				})
 			})
 		}, 1000);
 		wifi.Setup()
-		await bluetooth_init()
+		await music_manager.init()
 		event_watcher()
 		network_manger()
 		//AudioOutput_IRQ()
 		setTimeout(() => {
 			console.log('auto agent registered');
-			exec(`python ${current_path}/agent.py`)
+			exec(`python ${current_path}/../conf/agent.py`)
 		}, 3000);
 	})
 }
@@ -652,46 +644,4 @@ function apps_start() {
 	}, 1500);
 }
 
-bluez_event.on('connected', async() => {
-	music_manager.eventsHandler(events.FadeInVolume)
-	setTimeout(async() => {
-	//new device notification
-		exec(`aplay ${current_path}/Sounds/${'VA_bluetooth_connected.wav'}`).on('exit', () => {
-			music_manager.eventsHandler(events.FadeOutVolume)
-		})
-	}, 100);
-})
-
-bluez_event.on('finished', async() => {
-	music_manager.eventsHandler(events.B_Finished)
-	if(isBluePlaying === true) {
-		music_manager.isMusicPlaying = false
-		isBlueResume = true
-	}
-	else {
-		isBlueResume = false
-	}
-	isBluePlaying = false
-})
-
-bluetooth.on('update state', async(state) => {
-	console.log('bluetooth state: ' + state);
-	music_manager.bluePlayer.setState(state)
-	if(state == 'playing') {
-		//need to fix when bluealsa support dmix
-		await bluealsa_aplay_connect()
-		music_manager.eventsHandler(events.B_Play)
-		music_manager.isMusicPlaying = true
-		isBluePlaying = true
-	}
-	else {//state = paused or stopped
-		//need to fix when bluealsa support dmix
-		await bluealsa_aplay_disconnect()
-		music_manager.isMusicPlaying = false
-		isBluePlaying = false
-	}
-})
-/**
- * Main: running first
- */
 main();

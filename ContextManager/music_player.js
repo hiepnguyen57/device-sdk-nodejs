@@ -1,6 +1,9 @@
-const BluePlayer = require('./bluePlayer')
-const WebPlayer = require('./webPlayer')
+const BluePlayer = require('./../AudioPlayer/bluePlayer')
+const WebPlayer = require('./../AudioPlayer/webPlayer')
 const mp_events = require('./mp_events')
+const exec = require("child_process").exec;
+const current_path = require('path').dirname(require.main.filename)
+
 var music_manger =  null
 
 const events = {
@@ -43,6 +46,53 @@ class MusicManager {
 		this.webPlayer = new WebPlayer()
 		this.bluePlayer = new BluePlayer()
 		this.isMusicPlaying = false
+		this.isBluePlaying = false
+		this.isBlueResume = false
+	}
+
+	async init() {
+		await this.bluePlayer.bluecontrol.init()
+
+		this.bluePlayer.bluecontrol.bluez_event.on('connected', async() => {
+			this.eventsHandler(events.FadeInVolume)
+			setTimeout(async() => {
+				//new device notification
+				exec(`aplay ${current_path}/Sounds/${'VA_bluetooth_connected.wav'}`).on('exit', () => {
+					this.eventsHandler(events.FadeOutVolume)
+				})
+			}, 100);
+		})
+
+		this.bluePlayer.bluecontrol.bluez_event.on('finished', async() => {
+			this.eventsHandler(events.B_Finished)
+			if(this.isBluePlaying == true) {
+				this.isMusicPlaying = false
+				this.isBlueResume = true
+			}
+			else {
+				this.isBlueResume = false
+			}
+			this.isBluePlaying = false
+		})
+
+		this.bluePlayer.bluecontrol.bluetooth.on('update state', async(state) => {
+			console.log('bluetooth state: ' + state)
+			//auto update state of Bluetooth
+			this.bluePlayer.setState(state)
+			if(state == 'playing') {
+				//need to fix when bluealsa support dmix
+				await this.bluePlayer.bluecontrol.bluealsa_aplay_connect()
+				this.eventsHandler(events.B_Play)
+				this.isMusicPlaying = true
+				this.isBluePlaying = true
+			}
+			else {//state = paused or stopped
+				//need to fix when bluealsa support dmix
+				await this.bluePlayer.bluecontrol.bluealsa_aplay_disconnect()
+				this.isMusicPlaying = false
+				this.isBluePlaying = false
+			}
+		})
 	}
 
 	switchContext(newEvent) {
