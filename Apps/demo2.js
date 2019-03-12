@@ -22,11 +22,11 @@ const gpio 				= require('onoff').Gpio
 var ioctl 				= require('./../i2c-control/ioctl')
 var music_manager 		= require('./../ContextManager/music_player').getMusicManager()
 const events 			= require('./../ContextManager/music_player').events
-const playurl 				= require('./../MediaPlayer/playurlStream.js')
-const command 				= require('./../i2c-control/command.js')
-const wakeword 				= require('./../wakeword/wakeword.js')
+const playurl 			= require('./../MediaPlayer/playurlStream.js')
+const command 			= require('./../i2c-control/command.js')
+const wakeword 			= require('./../wakeword/wakeword.js')
 const wifi 				= require('./../Network/wifi.js')
-const i2c2 = i2c.openSync(2)
+const i2c2 				= i2c.openSync(2)
 
 /* Imports the Google Cloud client library */
 const speech = require('@google-cloud/speech');

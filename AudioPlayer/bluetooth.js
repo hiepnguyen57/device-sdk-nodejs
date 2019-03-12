@@ -14,13 +14,16 @@ class BlueControl {
 		this.MacAddress = ''
 		this.DevicePath = ''
 		this.DeviceName = ''
-		this.volBeforeFading = null
+		this.volBeforeFading = 0
 		this.Device = null
 		this.bluealsa_aplay = undefined
 		this.bluez_event = new EventEmitter()
 	}
+
 	async init() {
 		await this.bluetooth.init()
+		this.Adapter = await this.bluetooth.getAdapter('hci0');
+		await this.Adapter.Powered('on')
 
 		this.bluetooth.on('device connected', async(address, obj) => {
 			this.MacAddress = address
@@ -55,6 +58,7 @@ class BlueControl {
 			}
 		}
 	}
+
 	async bluealsa_aplay_disconnect() {
 		if (this.bluealsa_aplay != undefined) {
 			this.bluealsa_aplay.kill('SIGINT');
@@ -62,7 +66,6 @@ class BlueControl {
 	}
 
 	async bluetooth_discoverable(command) {
-		this.Adapter = await this.bluetooth.getAdapter('hci0');
 		if(command == 'on') {
 			await this.Adapter.Discoverable('off')
 			await this.Adapter.Discoverable('on')
