@@ -84,10 +84,10 @@ async function UserEvent(command) {
 			break;
 		case buffers.WAKEWORD_START:
 			await ioctl.Transmit(buffers.USER_EVENT, buffers.WAKEWORD_START)
-			console.log('wakeword start')
+			//console.log('wakeword start')
 		case buffers.WAKEWORD_STOP:
 			await ioctl.Transmit(buffers.USER_EVENT, buffers.WAKEWORD_STOP)
-			console.log('wakeword end')
+			//console.log('wakeword end')
 			break;
 		case buffers.MICROPHONE_MUTE:
 			await ioctl.Transmit(buffers.USER_EVENT, buffers.MICROPHONE_MUTE)
